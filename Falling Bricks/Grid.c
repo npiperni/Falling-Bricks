@@ -49,6 +49,8 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock) {
 	if (!validate_piece_position(grid, piece, row, col)) {
 		return false;
 	}
+
+	// Draw every cell of the piece to it's corresponding cell in the grid
 	for (int i = 0; i < piece->height; i++) {
 		for (int j = 0; j < piece->width; j++) {
 			if (piece->shape[i * piece->width + j]) {
@@ -60,6 +62,24 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock) {
 			}
 		}
 	}
+
+	// Predict where the piece will fall and mark those cells as shadow
+	for (int i = 0; i < grid->height - row; i++) {
+		if (!validate_piece_position(grid, piece, row + i, col)) {
+			for (int j = 0; j < piece->height; j++) {
+				for (int k = 0; k < piece->width; k++) {
+					bool shape_cell = piece->shape[j * piece->width + k];
+					Piece* grid_piece = grid->cells[row + i - 1 + j][col + k].piece;
+					// Draw a shadow where the piece will fall. Don't draw shadow on the piece itself if partially covered.
+					if (shape_cell && grid_piece != piece) {
+						grid->cells[row + i - 1 + j][col + k].shadow = true;
+					}
+				}
+			}
+			break;
+		}
+	}
+
 	return true;
 }
 
@@ -71,6 +91,7 @@ void clear_unlocked_cells(Grid* grid) {
 			if (!grid->cells[i][j].locked)
 			{
 				grid->cells[i][j].piece = NULL;
+				grid->cells[i][j].shadow = false;
 			}
 		}
 	}
@@ -97,7 +118,7 @@ void draw_grid(Grid* grid, SDL_Renderer* renderer) {
 				SDL_SetRenderDrawColor(renderer, piece->color.r, piece->color.g, piece->color.b, piece->color.a);
 				SDL_RenderFillRect(renderer, &cell_rect);
 
-				// Draw shadow around block to make it look 3D from far
+				// Draw shadow / outline around block to make it look 3D from far
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
 				SDL_Rect top_outline = { cell_rect.x, cell_rect.y, cell_width, cell_width / 8 };
 				SDL_Rect right_outline = { cell_rect.x + cell_width - cell_width / 8, cell_rect.y + cell_width / 8, cell_width / 8, cell_width - cell_width / 4 };
@@ -111,9 +132,10 @@ void draw_grid(Grid* grid, SDL_Renderer* renderer) {
 				SDL_RenderFillRect(renderer, &left_outline);
 			}
 			
-			//if (grid->cells[i][j].shadow) {
-			//	
-			//}
+			if (grid->cells[i][j].shadow) {
+				SDL_SetRenderDrawColor(renderer, 128, 128, 128, 128);
+				SDL_RenderFillRect(renderer, &cell_rect);
+			}
 		}
 	}
 }

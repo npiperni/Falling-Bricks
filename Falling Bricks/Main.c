@@ -11,6 +11,8 @@ int game_is_running = FALSE;
 
 int last_frame_time = 0;
 
+int last_drop_time = 0;
+
 float scale_factor = 1;
 
 struct ball {
@@ -28,6 +30,12 @@ struct player {
 Grid* grid = NULL;
 
 Piece* piece = NULL;
+
+struct Flags {
+	bool move_player_down;
+	bool move_player_left;
+	bool move_player_right;
+} flags = { 0 };
 
 int init_window(void) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -57,6 +65,35 @@ int init_window(void) {
 	return TRUE;
 }
 
+bool move_player_left(Grid* grid, Piece* piece) {
+	if (validate_piece_position(grid, piece, player.row, player.col - 1)) {
+		player.col--;
+		return true;
+	}
+	return false;
+}
+
+bool move_player_right(Grid* grid, Piece* piece) {
+	if (validate_piece_position(grid, piece, player.row, player.col + 1)) {
+		player.col++;
+		return true;
+	}
+	return false;
+}
+
+bool move_player_down(Grid* grid, Piece* piece) {
+	if (validate_piece_position(grid, piece, player.row + 1, player.col)) {
+		player.row++;
+		return true;
+	}
+	return false;
+}
+
+Piece* create_random_piece() {
+	int random_piece = rand() % 7;
+	return create_piece(random_piece);
+}
+
 void setup() {
 	ball.x = 20;
 	ball.y = 20;
@@ -68,8 +105,6 @@ void setup() {
 }
 
 void process_input() {
-	bool lock_piece = false;
-
 	SDL_Event event;
 	SDL_PollEvent(&event);
 
@@ -89,24 +124,15 @@ void process_input() {
 		} 
 		else if (key == SDLK_DOWN) {
 			ball.y += 50;
-			if (validate_piece_position(grid, piece, player.row + 1, player.col)) {
-				player.row++;
-			}
-			else {
-				lock_piece = true;
-			}
+			flags.move_player_down = true;
 		} 
 		else if (key == SDLK_LEFT) {
 			ball.x -= 50;
-			if (validate_piece_position(grid, piece, player.row, player.col - 1)) {
-				player.col--;
-			}
+			flags.move_player_left = true;
 		} 
 		else if (key == SDLK_RIGHT) {
 			ball.x += 50;
-			if (validate_piece_position(grid, piece, player.row, player.col + 1)) {
-				player.col++;
-			}
+			flags.move_player_right = true;
 		}
 		break;
 	case SDL_MOUSEMOTION:
@@ -119,9 +145,6 @@ void process_input() {
 		}
 		break;
 	}
-
-	clear_unlocked_cells(grid);
-	add_piece_to_grid(grid, piece, player.row, player.col, lock_piece);
 }
 
 void update() {
@@ -134,11 +157,6 @@ void update() {
 	}
 	
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
-	/*if (delta_time < 5)
-	{
-		return;
-	}*/
-
 	last_frame_time = SDL_GetTicks();
 
 	ball.x += 70 * delta_time;
@@ -153,6 +171,36 @@ void update() {
 	SDL_DisplayMode display_mode;
 	SDL_GetCurrentDisplayMode(displayIndex, &display_mode);
 	//printf("%d %d\n", display_mode.w, display_mode.h);
+
+	if (SDL_GetTicks() - last_drop_time >= 1000) {
+		last_drop_time = SDL_GetTicks();
+		flags.move_player_down = true;
+	}
+
+	bool lock_piece = false;
+
+	if (flags.move_player_down) {
+		lock_piece = !move_player_down(grid, piece);
+		flags.move_player_down = false;
+	}
+	if (flags.move_player_left) {
+		move_player_left(grid, piece);
+		flags.move_player_left = false;
+	}
+	if (flags.move_player_right) {
+		move_player_right(grid, piece);
+		flags.move_player_right = false;
+	}
+
+	clear_unlocked_cells(grid);
+	add_piece_to_grid(grid, piece, player.row, player.col, lock_piece);
+
+	if (lock_piece) {
+		//destroy_piece(piece);
+		piece = create_random_piece();
+		player.row = 0;
+		player.col = 0;
+	}
 }
 
 void render() {
