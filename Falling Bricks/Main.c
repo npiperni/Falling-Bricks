@@ -3,6 +3,7 @@
 #include "Constants.h"
 
 #include "Grid.h"
+#include "Piece.h"
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -23,6 +24,8 @@ struct player {
 	int row;
 	int col;
 } player;
+
+Piece* piece = NULL;
 
 int init_window(void) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -88,10 +91,6 @@ void process_input() {
 			ball.x -= 50;
 			player.col--;
 		} 
-		else if (key == SDLK_LEFT) {
-			ball.x -= 50;
-			player.col--;
-		}
 		else if (key == SDLK_RIGHT) {
 			ball.x += 50;
 			player.col++;
@@ -99,7 +98,6 @@ void process_input() {
 		break;
 	case SDL_MOUSEMOTION:
 		//printf("Mouse moved.\n");
-		printf("%d %d\n", event.motion.x, event.motion.y);
 		break;
 	case SDL_MOUSEBUTTONDOWN:
 		if (event.button.button == SDL_BUTTON_LEFT)
@@ -167,10 +165,13 @@ void render() {
 
 	SDL_Surface* screen = SDL_GetWindowSurface(window);
 
-	//// Draw grid
+	// Draw grid
 	Grid* grid = create_grid(10, 20, true);
-	grid->cells[player.row][player.col].color = (SDL_Color){ 0, 177, 0, 100 };
-	grid->cells[player.row][player.col].outline = true;
+	SDL_Color cell_color = { 0, 177, 0, 255 };
+
+	add_piece_to_grid(grid, piece, player.row, player.col);
+
+
 	draw_grid(grid, renderer);
 	destroy_grid(grid);
 
@@ -193,6 +194,12 @@ void destroy_window() {
 }
 
 int main(int argc, char* args[]) {
+
+	piece = create_piece(T);
+	if (!piece)
+	{
+		fprintf(stderr, "Fatal Error\n"); return 1;
+	}
 	
 	game_is_running = init_window();
 	
@@ -203,7 +210,7 @@ int main(int argc, char* args[]) {
 		update();
 		render();
 	}
-
+	destroy_piece(piece);
 	destroy_window();
 
 	return 0;

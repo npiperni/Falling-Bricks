@@ -135,10 +135,12 @@
   <ItemGroup>
     <ClCompile Include="Grid.c" />
     <ClCompile Include="Main.c" />
+    <ClCompile Include="Piece.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="Piece.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
