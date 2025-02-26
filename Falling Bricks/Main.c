@@ -25,6 +25,8 @@ struct player {
 	int col;
 } player;
 
+Grid* grid = NULL;
+
 Piece* piece = NULL;
 
 int init_window(void) {
@@ -66,6 +68,8 @@ void setup() {
 }
 
 void process_input() {
+	bool lock_piece = false;
+
 	SDL_Event event;
 	SDL_PollEvent(&event);
 
@@ -85,15 +89,24 @@ void process_input() {
 		} 
 		else if (key == SDLK_DOWN) {
 			ball.y += 50;
-			player.row++;
+			if (validate_piece_position(grid, piece, player.row + 1, player.col)) {
+				player.row++;
+			}
+			else {
+				lock_piece = true;
+			}
 		} 
 		else if (key == SDLK_LEFT) {
 			ball.x -= 50;
-			player.col--;
+			if (validate_piece_position(grid, piece, player.row, player.col - 1)) {
+				player.col--;
+			}
 		} 
 		else if (key == SDLK_RIGHT) {
 			ball.x += 50;
-			player.col++;
+			if (validate_piece_position(grid, piece, player.row, player.col + 1)) {
+				player.col++;
+			}
 		}
 		break;
 	case SDL_MOUSEMOTION:
@@ -106,6 +119,9 @@ void process_input() {
 		}
 		break;
 	}
+
+	clear_unlocked_cells(grid);
+	add_piece_to_grid(grid, piece, player.row, player.col, lock_piece);
 }
 
 void update() {
@@ -166,14 +182,10 @@ void render() {
 	SDL_Surface* screen = SDL_GetWindowSurface(window);
 
 	// Draw grid
-	Grid* grid = create_grid(10, 20, true);
 	SDL_Color cell_color = { 0, 177, 0, 255 };
-
-	add_piece_to_grid(grid, piece, player.row, player.col);
 
 
 	draw_grid(grid, renderer);
-	destroy_grid(grid);
 
 	SDL_Rect rect1 = { 400, 400, 100, 100 };
 	SDL_Rect rect2 = { 400, 400, 100, 100 };
@@ -195,8 +207,9 @@ void destroy_window() {
 
 int main(int argc, char* args[]) {
 
+	grid = create_grid(10, 20, true);
 	piece = create_piece(T);
-	if (!piece)
+	if (!piece || !grid)
 	{
 		fprintf(stderr, "Fatal Error\n"); return 1;
 	}
@@ -211,6 +224,8 @@ int main(int argc, char* args[]) {
 		render();
 	}
 	destroy_piece(piece);
+	destroy_grid(grid);
+
 	destroy_window();
 
 	return 0;

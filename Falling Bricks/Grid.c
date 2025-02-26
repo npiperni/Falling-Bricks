@@ -7,6 +7,7 @@
 static bool allocate_cells(Grid* grid);
 static void deallocate_cells(Cell** cells, int height);
 static void init_cells_in_row(Cell* cells, int width);
+static bool validate_grid_position(Grid* grid, int row, int col);
 
 Grid* create_grid(int width, int height, bool show_lines) {
 	Grid* grid = malloc(sizeof(Grid));
@@ -30,11 +31,7 @@ void destroy_grid(Grid* grid) {
 	free(grid);
 }
 
-bool validate_grid_position(Grid* grid, int row, int col) {
-	return row >= 0 && row < grid->height && col >= 0 && col < grid->width && !grid->cells[row][col].occupied;
-}
-
-bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col) {
+bool validate_piece_position(Grid* grid, Piece* piece, int row, int col) {
 	for (int i = 0; i < piece->height; i++) {
 		for (int j = 0; j < piece->width; j++) {
 			if (piece->shape[i * piece->width + j]) {
@@ -44,11 +41,36 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col) {
 			}
 		}
 	}
+	return true;
+}
+
+
+bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock) {
+	if (!validate_piece_position(grid, piece, row, col)) {
+		return false;
+	}
 	for (int i = 0; i < piece->height; i++) {
 		for (int j = 0; j < piece->width; j++) {
 			if (piece->shape[i * piece->width + j]) {
 				grid->cells[row + i][col + j].piece = piece;
-				//grid->cells[row + i][col + j].occupied = true;
+				if (lock)
+				{
+					grid->cells[row + i][col + j].locked = true;
+				}
+			}
+		}
+	}
+	return true;
+}
+
+void clear_unlocked_cells(Grid* grid) {
+	for (int i = 0; i < grid->height; i++)
+	{
+		for (int j = 0; j < grid->width; j++)
+		{
+			if (!grid->cells[i][j].locked)
+			{
+				grid->cells[i][j].piece = NULL;
 			}
 		}
 	}
@@ -96,6 +118,10 @@ void draw_grid(Grid* grid, SDL_Renderer* renderer) {
 	}
 }
 
+static bool validate_grid_position(Grid* grid, int row, int col) {
+	return row >= 0 && row < grid->height && col >= 0 && col < grid->width && !grid->cells[row][col].locked;
+}
+
 static bool allocate_cells(Grid* grid) {
 	grid->cells = malloc(sizeof(Cell*) * grid->height);
 	if (!grid->cells) {
@@ -125,7 +151,7 @@ static void deallocate_cells(Cell** cells, int height) {
 static void init_cells_in_row(Cell* cells, int width) {
 	for (int i = 0; i < width; i++) {
 		cells[i].piece = NULL;
-		cells[i].occupied = false;
+		cells[i].locked = false;
 		cells[i].shadow = false;
 	}
 }
