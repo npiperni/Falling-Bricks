@@ -45,7 +45,6 @@ Piece* create_piece(enum PieceType type) {
 		piece->height = 2;
 		piece->shape = calloc(piece->height * piece->width, sizeof(bool));
 		if (calloc_failed(piece->shape)) { free(piece); return NULL; }
-		piece->shape[1] = true;
 		piece->shape[2] = true;
 		piece->shape[3] = true;
 		piece->shape[4] = true;
