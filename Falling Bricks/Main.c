@@ -2,11 +2,15 @@
 #include <SDL.h>
 #include "Constants.h"
 
+#include "Grid.h"
+
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int game_is_running = FALSE;
 
 int last_frame_time = 0;
+
+float scale_factor = 1;
 
 struct ball {
 	float x;
@@ -14,6 +18,11 @@ struct ball {
 	float width;
 	float height;
 } ball;
+
+struct player {
+	int row;
+	int col;
+} player;
 
 int init_window(void) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -39,6 +48,7 @@ int init_window(void) {
 		fprintf(stderr, "Error creating SDL renderer.\n");
 		return FALSE;
 	}
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	return TRUE;
 }
 
@@ -47,6 +57,9 @@ void setup() {
 	ball.y = 20;
 	ball.width = 15;
 	ball.height = 15;
+
+	player.row = 0;
+	player.col = 0;
 }
 
 void process_input() {
@@ -65,18 +78,23 @@ void process_input() {
 		} 
 		else if (key == SDLK_UP) {
 			ball.y -= 50;
+			player.row--;
 		} 
 		else if (key == SDLK_DOWN) {
 			ball.y += 50;
+			player.row++;
 		} 
 		else if (key == SDLK_LEFT) {
 			ball.x -= 50;
+			player.col--;
 		} 
 		else if (key == SDLK_LEFT) {
 			ball.x -= 50;
+			player.col--;
 		}
 		else if (key == SDLK_RIGHT) {
 			ball.x += 50;
+			player.col++;
 		}
 		break;
 	case SDL_MOUSEMOTION:
@@ -100,13 +118,27 @@ void update() {
 	//if (time_to_wait > 0 && time_to_wait <= FRAME_TARGET_TIME) {
 	//	SDL_Delay(time_to_wait);
 	//}
-
+	
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
+	/*if (delta_time < 5)
+	{
+		return;
+	}*/
 
 	last_frame_time = SDL_GetTicks();
 
 	ball.x += 70 * delta_time;
 	ball.y += 50 * delta_time;
+	//printf("%d\n", SDL_GetTicks());
+
+	int current_width, current_height;
+	SDL_GetWindowSize(window, &current_width, &current_height);
+	scale_factor = MIN((float) current_width / WINDOW_WIDTH, (float) current_height / WINDOW_HEIGHT);
+	//printf("%f\n", scale_factor);
+	int displayIndex = SDL_GetWindowDisplayIndex(window);
+	SDL_DisplayMode display_mode;
+	SDL_GetCurrentDisplayMode(displayIndex, &display_mode);
+	//printf("%d %d\n", display_mode.w, display_mode.h);
 }
 
 void render() {
@@ -129,17 +161,27 @@ void render() {
 	SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderDrawLine(renderer, 5, 5, 160, 130);
 
-	SDL_Rect my_rect = { 100, 100, 100, 100 };
+	SDL_Rect my_rect = { 100 * scale_factor, 100 * scale_factor, 100 * scale_factor, 100 * scale_factor };
 	SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderDrawRect(renderer, &my_rect);
 
 	SDL_Surface* screen = SDL_GetWindowSurface(window);
 
-	// Seizure warning
-	/*SDL_LockSurface(screen);
-	SDL_memset(screen->pixels, 255, screen->h * screen->pitch);
-	SDL_UnlockSurface(screen);
-	SDL_UpdateWindowSurface(window);*/
+	// Draw grid
+	Grid* grid = create_grid(10, 20, true);
+	grid->cells[player.row][player.col].color = (SDL_Color){ 0, 177, 0, 100 };
+	grid->cells[player.row][player.col].outline = true;
+	draw_grid(grid, renderer);
+	destroy_grid(grid);
+
+	SDL_Rect rect1 = { 400, 400, 100, 100 };
+	SDL_Rect rect2 = { 400, 400, 100, 100 };
+
+	SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
+	SDL_RenderFillRect(renderer, &rect1);
+
+	SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
+	SDL_RenderDrawRect(renderer, &rect2);
 
 	SDL_RenderPresent(renderer);
 }
@@ -151,8 +193,7 @@ void destroy_window() {
 }
 
 int main(int argc, char* args[]) {
-	//SDL_Init(SDL_INIT_EVERYTHING);
-	//printf("hello world from C!\n");
+	
 	game_is_running = init_window();
 	
 	setup();
