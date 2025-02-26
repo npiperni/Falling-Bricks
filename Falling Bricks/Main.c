@@ -35,6 +35,7 @@ struct Flags {
 	bool move_player_down;
 	bool move_player_left;
 	bool move_player_right;
+	bool drop_player;
 } flags = { 0 };
 
 int init_window(void) {
@@ -134,6 +135,9 @@ void process_input() {
 			ball.x += 50;
 			flags.move_player_right = true;
 		}
+		else if (key == SDLK_SPACE) {
+			flags.drop_player = true;
+		}
 		break;
 	case SDL_MOUSEMOTION:
 		//printf("Mouse moved.\n");
@@ -172,12 +176,13 @@ void update() {
 	SDL_GetCurrentDisplayMode(displayIndex, &display_mode);
 	//printf("%d %d\n", display_mode.w, display_mode.h);
 
+	bool lock_piece = false;
+	bool drop = false;
+
 	if (SDL_GetTicks() - last_drop_time >= 1000) {
 		last_drop_time = SDL_GetTicks();
 		flags.move_player_down = true;
 	}
-
-	bool lock_piece = false;
 
 	if (flags.move_player_down) {
 		lock_piece = !move_player_down(grid, piece);
@@ -191,11 +196,15 @@ void update() {
 		move_player_right(grid, piece);
 		flags.move_player_right = false;
 	}
+	if (flags.drop_player) {
+		drop = true;
+		flags.drop_player = false;
+	}
 
 	clear_unlocked_cells(grid);
-	add_piece_to_grid(grid, piece, player.row, player.col, lock_piece);
+	add_piece_to_grid(grid, piece, player.row, player.col, lock_piece, drop);
 
-	if (lock_piece) {
+	if (lock_piece || drop) {
 		//destroy_piece(piece);
 		piece = create_random_piece();
 		player.row = 0;

@@ -24,7 +24,7 @@ void destroy_grid(Grid* grid);
 
 bool validate_piece_position(Grid* grid, Piece* piece, int row, int col);
 
-bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock);
+bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock, bool drop);
 
 void clear_unlocked_cells(Grid* grid);
 

@@ -8,6 +8,8 @@ static bool allocate_cells(Grid* grid);
 static void deallocate_cells(Cell** cells, int height);
 static void init_cells_in_row(Cell* cells, int width);
 static bool validate_grid_position(Grid* grid, int row, int col);
+static bool insert_piece_at_position(Grid* grid, Piece* piece, int row, int col, bool lock);
+static bool drop_piece_on_grid(Grid* grid, Piece* piece, int row, int col);
 
 Grid* create_grid(int width, int height, bool show_lines) {
 	Grid* grid = malloc(sizeof(Grid));
@@ -45,26 +47,17 @@ bool validate_piece_position(Grid* grid, Piece* piece, int row, int col) {
 }
 
 
-bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock) {
-	if (!validate_piece_position(grid, piece, row, col)) {
+bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock, bool drop) {
+	if (drop) {
+		return drop_piece_on_grid(grid, piece, row, col);
+	}
+
+	if (!insert_piece_at_position(grid, piece, row, col, lock)) {
 		return false;
 	}
 
-	// Draw every cell of the piece to it's corresponding cell in the grid
-	for (int i = 0; i < piece->height; i++) {
-		for (int j = 0; j < piece->width; j++) {
-			if (piece->shape[i * piece->width + j]) {
-				grid->cells[row + i][col + j].piece = piece;
-				if (lock)
-				{
-					grid->cells[row + i][col + j].locked = true;
-				}
-			}
-		}
-	}
-
 	// Predict where the piece will fall and mark those cells as shadow
-	for (int i = 0; i < grid->height - row; i++) {
+	for (int i = 1; i < grid->height - row; i++) {
 		if (!validate_piece_position(grid, piece, row + i, col)) {
 			for (int j = 0; j < piece->height; j++) {
 				for (int k = 0; k < piece->width; k++) {
@@ -80,6 +73,16 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock) {
 		}
 	}
 
+	return true;
+}
+
+static bool drop_piece_on_grid(Grid* grid, Piece* piece, int row, int col) {
+	// Predict where the piece will fall and mark those cells as shadow
+	for (int i = 1; i < grid->height - row; i++) {
+		if (!validate_piece_position(grid, piece, row + i, col)) {
+			return insert_piece_at_position(grid, piece, row + i - 1, col, true);
+		}
+	}
 	return true;
 }
 
@@ -135,6 +138,24 @@ void draw_grid(Grid* grid, SDL_Renderer* renderer) {
 			if (grid->cells[i][j].shadow) {
 				SDL_SetRenderDrawColor(renderer, 128, 128, 128, 128);
 				SDL_RenderFillRect(renderer, &cell_rect);
+			}
+		}
+	}
+}
+
+static bool insert_piece_at_position(Grid* grid, Piece* piece, int row, int col, bool lock) {
+	if (!validate_piece_position(grid, piece, row, col)) {
+		return false;
+	}
+
+	// Draw every cell of the piece to it's corresponding cell in the grid
+	for (int i = 0; i < piece->height; i++) {
+		for (int j = 0; j < piece->width; j++) {
+			if (piece->shape[i * piece->width + j]) {
+				grid->cells[row + i][col + j].piece = piece;
+				if (lock){
+					grid->cells[row + i][col + j].locked = true;
+				}
 			}
 		}
 	}
