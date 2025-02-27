@@ -1,8 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <SDL.h>
-
 #include "Grid.h"
+#include <stdio.h>
 
 static bool allocate_cells(Grid* grid);
 static void deallocate_cells(Cell** cells, int height);
@@ -150,8 +147,8 @@ void clear_unlocked_cells(Grid* grid) {
 }
 
 void draw_grid(Grid* grid, SDL_Renderer* renderer) {
-	int origin_x = 100;
-	int origin_y = 100;
+	int origin_x = 50;
+	int origin_y = 50;
 	int cell_width = 32;
 	int border_width = 4;
 

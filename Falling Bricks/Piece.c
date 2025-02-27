@@ -1,7 +1,5 @@
-#include <stdio.h>
-#include <stdbool.h>
-
 #include "Piece.h"
+#include <stdio.h>
 
 static bool calloc_failed(bool* shape);
 

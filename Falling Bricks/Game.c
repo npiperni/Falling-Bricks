@@ -14,13 +14,6 @@ int last_drop_time = 0;
 
 float scale_factor = 1;
 
-struct ball {
-	float x;
-	float y;
-	float width;
-	float height;
-} ball;
-
 struct player {
 	int row;
 	int col;
@@ -69,10 +62,6 @@ static Piece* create_random_piece() {
 }
 
 bool setup() {
-	ball.x = 20;
-	ball.y = 20;
-	ball.width = 15;
-	ball.height = 15;
 
 	player.row = 0;
 	player.col = 0;
@@ -110,19 +99,15 @@ void process_input(bool* running) {
 			flags.pause = !flags.pause;
 		}
 		else if (key == SDLK_UP) {
-			ball.y -= 50;
 			flags.rotate_player = true;
 		}
 		else if (key == SDLK_DOWN) {
-			ball.y += 50;
 			flags.move_player_down = true;
 		}
 		else if (key == SDLK_LEFT) {
-			ball.x -= 50;
 			flags.move_player_left = true;
 		}
 		else if (key == SDLK_RIGHT) {
-			ball.x += 50;
 			flags.move_player_right = true;
 		}
 		else if (key == SDLK_SPACE) {
@@ -157,8 +142,8 @@ void update() {
 		return;
 	}
 
-	ball.x += 70 * delta_time;
-	ball.y += 50 * delta_time;
+	//ball.x += 70 * delta_time;
+	//ball.y += 50 * delta_time;
 	//printf("%d\n", SDL_GetTicks());
 
 	//int current_width, current_height;
@@ -219,20 +204,6 @@ void update() {
 void render(SDL_Renderer* renderer) {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
-
-	// Draw rectangle
-	SDL_Rect ball_rect = {
-		(int)ball.x,
-		(int)ball.y,
-		(int)ball.width,
-		(int)ball.height
-	};
-
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-
-	SDL_RenderFillRect(renderer, &ball_rect);
-
 
 	SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
 	SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);

@@ -2,8 +2,8 @@
 
 #include <SDL.h>
 #include <stdbool.h>
-
 #include "Piece.h"
+
 
 typedef struct {
 	Piece* piece;
