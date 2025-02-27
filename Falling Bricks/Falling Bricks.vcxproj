@@ -133,11 +133,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Game.c" />
     <ClCompile Include="Grid.c" />
     <ClCompile Include="Main.c" />
     <ClCompile Include="Piece.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Game.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Piece.h" />
