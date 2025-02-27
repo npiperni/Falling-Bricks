@@ -104,11 +104,26 @@ void draw_grid(Grid* grid, SDL_Renderer* renderer) {
 	int origin_x = 100;
 	int origin_y = 100;
 	int cell_width = 32;
+	int border_width = 4;
+
+	if (grid->show_grid_lines) {
+		SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
+		// Draw a border around the grid, use the outline code below
+		SDL_Rect top_border = { origin_x, origin_y, grid->width * cell_width + border_width * 2, border_width };
+		SDL_Rect bottom_border = { origin_x, origin_y + grid->height * cell_width + border_width, grid->width * cell_width + border_width * 2, border_width };
+		SDL_Rect left_border = { origin_x, origin_y + border_width, border_width, grid->height * cell_width };
+		SDL_Rect right_border = { origin_x + grid->width * cell_width + border_width, origin_y + border_width, border_width, grid->height * cell_width };
+		SDL_RenderFillRect(renderer, &top_border);
+		SDL_RenderFillRect(renderer, &bottom_border);
+		SDL_RenderFillRect(renderer, &left_border);
+		SDL_RenderFillRect(renderer, &right_border);
+	}
+
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
 			SDL_Rect cell_rect = {
-				j * cell_width + origin_x,
-				i * cell_width + origin_y,
+				j * cell_width + origin_x + border_width,
+				i * cell_width + origin_y + border_width,
 				cell_width,
 				cell_width
 			};

@@ -23,7 +23,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[1] = true;
 		piece->shape[2] = true;
 		piece->shape[3] = true;
-		piece->color = (SDL_Color){ 0, 255, 255, 255 };
+		piece->color = (SDL_Color){ 0, 255, 255, SDL_ALPHA_OPAQUE };
 		break;
 	case L:
 		// 1 0 0
@@ -36,7 +36,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[3] = true;
 		piece->shape[4] = true;
 		piece->shape[5] = true;
-		piece->color = (SDL_Color){ 0, 255, 255, 255 };
+		piece->color = (SDL_Color){ 255, 0, 255, SDL_ALPHA_OPAQUE };
 		break;
 	case LR:
 		// 0 0 1
@@ -49,7 +49,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[3] = true;
 		piece->shape[4] = true;
 		piece->shape[5] = true;
-		piece->color = (SDL_Color){ 0, 255, 255, 255 };
+		piece->color = (SDL_Color){ 255, 255, 0, SDL_ALPHA_OPAQUE };
 		break;
 	case S:
 		// 1 1
@@ -62,7 +62,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[1] = true;
 		piece->shape[2] = true;
 		piece->shape[3] = true;
-		piece->color = (SDL_Color){ 0, 255, 0, 255 };
+		piece->color = (SDL_Color){ 0, 255, 0, SDL_ALPHA_OPAQUE };
 		break;
 	case Z:
 		// 1 1 0
@@ -75,7 +75,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[1] = true;
 		piece->shape[4] = true;
 		piece->shape[5] = true;
-		piece->color = (SDL_Color){ 255, 0, 0, 255 };
+		piece->color = (SDL_Color){ 255, 0, 0, SDL_ALPHA_OPAQUE };
 		break;
 	case ZR:
 		// 0 1 1
@@ -88,7 +88,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[2] = true;
 		piece->shape[3] = true;
 		piece->shape[4] = true;
-		piece->color = (SDL_Color){ 255, 0, 0, 255 };
+		piece->color = (SDL_Color){ 0, 0, 255, SDL_ALPHA_OPAQUE };
 		break;
 	case T:
 		// 0 1 0
@@ -101,7 +101,7 @@ Piece* create_piece(enum PieceType type) {
 		piece->shape[3] = true;
 		piece->shape[4] = true;
 		piece->shape[5] = true;
-		piece->color = (SDL_Color){ 128, 0, 128, 255 };
+		piece->color = (SDL_Color){ 255, 113, 0, SDL_ALPHA_OPAQUE };
 		break;
 	default:
 		fprintf(stderr, "Error: Invalid Piece Type\n");

@@ -44,7 +44,7 @@ int init_window(void) {
 		return FALSE;
 	}
 	window = SDL_CreateWindow(
-		"My SDL Title",
+		"Falling Bricks",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		WINDOW_WIDTH,
@@ -229,10 +229,8 @@ void render() {
 
 	SDL_RenderFillRect(renderer, &ball_rect);
 
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderDrawLine(renderer, 5, 5, 160, 130);
 
-	SDL_Rect my_rect = { 100 * scale_factor, 100 * scale_factor, 100 * scale_factor, 100 * scale_factor };
+	SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
 	SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderDrawRect(renderer, &my_rect);
 
@@ -243,15 +241,6 @@ void render() {
 
 
 	draw_grid(grid, renderer);
-
-	SDL_Rect rect1 = { 400, 400, 100, 100 };
-	SDL_Rect rect2 = { 400, 400, 100, 100 };
-
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderFillRect(renderer, &rect1);
-
-	SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderDrawRect(renderer, &rect2);
 
 	SDL_RenderPresent(renderer);
 }
