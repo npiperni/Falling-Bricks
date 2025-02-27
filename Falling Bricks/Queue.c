@@ -1,0 +1,49 @@
+#include "Queue.h"
+#include <stdlib.h>
+
+Queue* create_queue() {
+    Queue* queue = (Queue*)malloc(sizeof(Queue));
+    queue->front = queue->rear = NULL;
+    return queue;
+}
+
+void enqueue(Queue* queue, void* data) {
+    Node* new_node = (Node*)malloc(sizeof(Node));
+    new_node->data = data;
+    new_node->next = NULL;
+
+    if (!queue->rear) {
+        queue->front = queue->rear = new_node;
+        return;
+    }
+
+    queue->rear->next = new_node;
+    queue->rear = new_node;
+}
+
+void* dequeue(Queue* queue) {
+    if (!queue->front) return NULL;
+
+    Node* temp = queue->front;
+    void* data = temp->data;
+    queue->front = queue->front->next;
+    if (!queue->front) queue->rear = NULL;
+
+    free(temp);
+    return data;
+}
+
+void clear_queue(Queue* queue) {
+    while (queue->front) {
+        void* data = dequeue(queue);
+        if (queue->data_destroyer) {
+            queue->data_destroyer(data);  // Call user-defined free function
+        }
+    }
+    queue->rear = NULL;
+}
+
+void destroy_queue(Queue* queue) {
+	clear_queue(queue);
+    free(queue);
+}

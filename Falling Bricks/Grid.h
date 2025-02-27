@@ -30,4 +30,4 @@ Piece* try_rotate_piece(Grid* grid, Piece* piece, int* row, int* col);
 
 void clear_unlocked_cells(Grid* grid);
 
-void draw_grid(Grid* grid, SDL_Renderer* renderer);
+void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer);

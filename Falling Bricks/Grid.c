@@ -146,13 +146,10 @@ void clear_unlocked_cells(Grid* grid) {
 	}
 }
 
-void draw_grid(Grid* grid, SDL_Renderer* renderer) {
-	int origin_x = 50;
-	int origin_y = 50;
-	int cell_width = 32;
+void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer) {
 	int border_width = 4;
 
-	if (grid->show_grid_lines) {
+	if (border) {
 		SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
 		// Draw a border around the grid, use the outline code below
 		SDL_Rect top_border = { origin_x, origin_y, grid->width * cell_width + border_width * 2, border_width };

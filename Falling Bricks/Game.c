@@ -17,11 +17,12 @@ float scale_factor = 1;
 struct player {
 	int row;
 	int col;
+	Piece* piece;
 } player;
 
-Grid* grid = NULL;
+Grid* game_board = NULL;
 
-Piece* piece = NULL;
+Grid* queue_grid = NULL;
 
 struct Flags {
 	bool move_player_down;
@@ -32,24 +33,24 @@ struct Flags {
 	bool pause;
 } flags = { 0 };
 
-static bool move_player_left(Grid* grid, Piece* piece) {
-	if (validate_piece_position(grid, piece, player.row, player.col - 1)) {
+static bool move_player_left() {
+	if (validate_piece_position(game_board, player.piece, player.row, player.col - 1)) {
 		player.col--;
 		return true;
 	}
 	return false;
 }
 
-static bool move_player_right(Grid* grid, Piece* piece) {
-	if (validate_piece_position(grid, piece, player.row, player.col + 1)) {
+static bool move_player_right() {
+	if (validate_piece_position(game_board, player.piece, player.row, player.col + 1)) {
 		player.col++;
 		return true;
 	}
 	return false;
 }
 
-static bool move_player_down(Grid* grid, Piece* piece) {
-	if (validate_piece_position(grid, piece, player.row + 1, player.col)) {
+static bool move_player_down() {
+	if (validate_piece_position(game_board, player.piece, player.row + 1, player.col)) {
 		player.row++;
 		return true;
 	}
@@ -66,9 +67,12 @@ bool setup() {
 	player.row = 0;
 	player.col = 0;
 
-	grid = create_grid(10, 20, true);
-	piece = create_piece(LINE);
-	if (!piece || !grid)
+	game_board = create_grid(10, 20, true);
+	player.piece = create_piece(LINE);
+
+	queue_grid = create_grid(6, 20, true);
+
+	if (!player.piece || !game_board)
 	{
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
@@ -77,8 +81,8 @@ bool setup() {
 }
 
 void cleanup() {
-	destroy_piece(piece);
-	destroy_grid(grid);
+	destroy_piece(player.piece);
+	destroy_grid(game_board);
 }
 
 void process_input(bool* running) {
@@ -164,16 +168,16 @@ void update() {
 	}
 
 	if (flags.move_player_down) {
-		lock_piece = !move_player_down(grid, piece);
+		lock_piece = !move_player_down();
 		flags.move_player_down = false;
 		flags.rotate_player = false;
 	}
 	if (flags.move_player_left) {
-		move_player_left(grid, piece);
+		move_player_left();
 		flags.move_player_left = false;
 	}
 	if (flags.move_player_right) {
-		move_player_right(grid, piece);
+		move_player_right();
 		flags.move_player_right = false;
 	}
 	if (flags.drop_player) {
@@ -181,21 +185,21 @@ void update() {
 		flags.drop_player = false;
 	}
 	if (flags.rotate_player) {
-		Piece* rotated_piece = try_rotate_piece(grid, piece, &player.row, &player.col);
+		Piece* rotated_piece = try_rotate_piece(game_board, player.piece, &player.row, &player.col);
 		if (rotated_piece) {
-			destroy_piece(piece);
+			destroy_piece(player.piece);
 			// Update to rotated piece and new position after rotation
-			piece = rotated_piece;
+			player.piece = rotated_piece;
 		}
 		flags.rotate_player = false;
 	}
 
-	clear_unlocked_cells(grid);
-	add_piece_to_grid(grid, piece, player.row, player.col, lock_piece, drop);
+	clear_unlocked_cells(game_board);
+	add_piece_to_grid(game_board, player.piece, player.row, player.col, lock_piece, drop);
 
 	if (lock_piece || drop) {
 		//destroy_piece(piece);
-		piece = create_random_piece();
+		player.piece = create_random_piece();
 		player.row = 0;
 		player.col = 0;
 	}
@@ -205,9 +209,9 @@ void render(SDL_Renderer* renderer) {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
-	SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
-	SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderDrawRect(renderer, &my_rect);
+	//SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
+	//SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
+	//SDL_RenderDrawRect(renderer, &my_rect);
 
 	//SDL_Surface* screen = SDL_GetWindowSurface(window);
 
@@ -215,7 +219,8 @@ void render(SDL_Renderer* renderer) {
 	SDL_Color cell_color = { 0, 177, 0, 255 };
 
 
-	draw_grid(grid, renderer);
+	draw_grid(game_board, 50, 50, 32, true, renderer);
+	draw_grid(queue_grid, 500, 50, 32, true, renderer);
 
 	SDL_RenderPresent(renderer);
 }

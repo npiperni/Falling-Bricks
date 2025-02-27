@@ -137,12 +137,14 @@
     <ClCompile Include="Grid.c" />
     <ClCompile Include="Main.c" />
     <ClCompile Include="Piece.c" />
+    <ClCompile Include="Queue.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Piece.h" />
+    <ClInclude Include="Queue.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
