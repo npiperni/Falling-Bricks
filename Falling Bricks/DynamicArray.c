@@ -53,9 +53,27 @@ void remove_from_dynamic_array(DynamicArray* array, void* item) {
     }
 }
 
-void* get_from_dynamic_array(DynamicArray* array, int index) {
+void* get_from_dynamic_array(const DynamicArray* array, int index) {
     if (!array || index < 0 || index >= array->size) return NULL;
     return array->items[index];
+}
+
+void clear_dynamic_array(DynamicArray* array) {
+	for (int i = 0; i < array->size; i++) {
+		if (array->data_destroyer) {
+			array->data_destroyer(array->items[i]);
+		}
+	}
+	array->size = 0;
+}
+
+bool dynamic_array_contains(const DynamicArray* array, const void* item) {
+	for (int i = 0; i < array->size; i++) {
+		if (array->items[i] == item) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void destroy_dynamic_array(DynamicArray* array) {

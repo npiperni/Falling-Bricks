@@ -17,11 +17,7 @@ float scale_factor = 1;
 
 bool round_active = false;
 
-struct player {
-	int row;
-	int col;
-	Piece* piece;
-} player;
+Piece* player_piece = NULL;
 
 Grid* game_board = NULL;
 
@@ -38,24 +34,24 @@ struct Flags {
 } flags = { 0 };
 
 static bool move_player_left() {
-	if (validate_piece_position(game_board, player.piece, player.row, player.col - 1)) {
-		player.col--;
+	if (validate_piece_at_position(game_board, player_piece, player_piece->row_pos, player_piece->col_pos - 1)) {
+		player_piece->col_pos--;
 		return true;
 	}
 	return false;
 }
 
 static bool move_player_right() {
-	if (validate_piece_position(game_board, player.piece, player.row, player.col + 1)) {
-		player.col++;
+	if (validate_piece_at_position(game_board, player_piece, player_piece->row_pos, player_piece->col_pos + 1)) {
+		player_piece->col_pos++;
 		return true;
 	}
 	return false;
 }
 
 static bool move_player_down() {
-	if (validate_piece_position(game_board, player.piece, player.row + 1, player.col)) {
-		player.row++;
+	if (validate_piece_at_position(game_board, player_piece, player_piece->row_pos + 1, player_piece->col_pos)) {
+		player_piece->row_pos++;
 		return true;
 	}
 	return false;
@@ -68,11 +64,8 @@ static Piece* create_random_piece() {
 
 bool setup() {
 
-	player.row = 0;
-	player.col = 0;
-
 	game_board = create_grid(10, 20, true);
-	player.piece = create_piece(T);
+	player_piece = create_piece(T);
 
 	queue_grid = create_grid(6, 19, true);
 	queue_grid->show_grid_lines = false;
@@ -81,11 +74,13 @@ bool setup() {
 
 	for (int i = 0; i < 6; i++) {
 		Piece* new_piece = create_random_piece();
+		new_piece->row_pos = 3 * i + 1;
+		new_piece->col_pos = 1;
 		enqueue(next_pieces, new_piece);
-		add_piece_to_grid(queue_grid, new_piece, 3 * i + 1, 1, true, false);
+		add_piece_to_grid(queue_grid, new_piece, true, false);
 	}
 
-	if (!player.piece || !game_board)
+	if (!player_piece || !game_board)
 	{
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
@@ -97,7 +92,7 @@ bool setup() {
 }
 
 void cleanup() {
-	destroy_piece(player.piece);
+	destroy_piece(player_piece);
 	destroy_grid(game_board);
 	destroy_queue(next_pieces);
 }
@@ -204,17 +199,17 @@ void update() {
 			flags.drop_player = false;
 		}
 		if (flags.rotate_player) {
-			Piece* rotated_piece = try_rotate_piece(game_board, player.piece, &player.row, &player.col);
+			Piece* rotated_piece = try_rotate_piece(game_board, player_piece);
 			if (rotated_piece) {
-				destroy_piece(player.piece);
+				destroy_piece(player_piece);
 				// Update to rotated piece and new position after rotation
-				player.piece = rotated_piece;
+				player_piece = rotated_piece;
 			}
 			flags.rotate_player = false;
 		}
 
 		clear_unlocked_cells(game_board);
-		bool piece_added = add_piece_to_grid(game_board, player.piece, player.row, player.col, lock_piece, drop);
+		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop);
 
 		if (!piece_added) {
 			round_active = false;
@@ -222,17 +217,22 @@ void update() {
 		}
 
 		if (lock_piece) {
-			//destroy_piece(piece);
-			player.piece = dequeue(next_pieces);
-			player.row = 0;
-			player.col = 0;
+			// Check for full rows
+			clear_full_rows(game_board);
+			destroy_piece(player_piece);
+			player_piece = dequeue(next_pieces);
+			player_piece->row_pos = 0;
+			player_piece->col_pos = 0;
 
 			enqueue(next_pieces, create_random_piece());
 			// Update queue grid
-			clear_all_cells(queue_grid);
+			clear_grid(queue_grid);
 			Node* current = next_pieces->front;
 			for (int i = 0; i < next_pieces->size; i++) {
-				add_piece_to_grid(queue_grid, (Piece*)current->data, 3 * i + 1, 1, true, false);
+				Piece* next_piece = (Piece*)current->data;
+				next_piece->row_pos = 3 * i + 1;
+				next_piece->col_pos = 1;
+				add_piece_to_grid(queue_grid, next_piece, true, false);
 				current = current->next;
 			}
 		}

@@ -17,6 +17,9 @@ typedef struct {
     bool* shape;
     int width;
 	int height;
+	int row_pos;
+	int col_pos;
+	enum PieceType type;
     SDL_Color color;
 } Piece;
 
@@ -24,5 +27,9 @@ typedef struct {
 Piece* create_piece(enum PieceType type);
 
 Piece* rotate_piece(const Piece* piece);
+
+bool is_piece_empty(const Piece* piece);
+
+Piece* copy_piece(const Piece* piece);
 
 void destroy_piece(Piece* piece);

@@ -10,6 +10,9 @@ Piece* create_piece(enum PieceType type) {
 		return NULL;
 	}
 
+	piece->row_pos = 0;
+	piece->col_pos = 0;
+	piece->type = type;
 	switch (type) {
 	case LINE:
 		// 1 1 1 1
@@ -133,6 +136,35 @@ Piece* rotate_piece(const Piece* piece) {
 	}
 
 	return rotated_piece;
+}
+
+bool is_piece_empty(const Piece* piece) {
+	for (int i = 0; i < piece->height * piece->width; i++) {
+		if (piece->shape[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+Piece* copy_piece(const Piece* piece) {
+	Piece* new_piece = malloc(sizeof(Piece));
+	if (!new_piece) {
+		fprintf(stderr, "Error: Failed to allocate memory for copied Piece\n");
+		return NULL;
+	}
+	new_piece->width = piece->width;
+	new_piece->height = piece->height;
+	new_piece->row_pos = piece->row_pos;
+	new_piece->col_pos = piece->col_pos;
+	new_piece->type = piece->type;
+	new_piece->color = piece->color;
+	new_piece->shape = calloc(new_piece->height * new_piece->width, sizeof(bool));
+	if (calloc_failed(new_piece->shape)) { free(new_piece); return NULL; }
+	for (int i = 0; i < new_piece->height * new_piece->width; i++) {
+		new_piece->shape[i] = piece->shape[i];
+	}
+	return new_piece;
 }
 
 void destroy_piece(Piece* piece) {

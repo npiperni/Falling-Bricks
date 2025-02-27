@@ -5,9 +5,10 @@ static bool allocate_cells(Grid* grid);
 static void deallocate_cells(Cell** cells, int height);
 static void init_cells_in_row(Cell* cells, int width);
 static bool validate_grid_position(Grid* grid, int row, int col);
-static bool insert_piece_at_position(Grid* grid, Piece* piece, int row, int col, bool lock);
-static bool drop_piece_on_grid(Grid* grid, Piece* piece, int row, int col, bool lock);
-static void mark_shadow_predictions(Grid* grid, Piece* piece, int row, int col);
+static bool insert_piece(Grid* grid, Piece* piece, bool lock);
+static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock);
+static void mark_shadow_predictions(Grid* grid, Piece* piece);
+static void remove_empty_pieces(Grid* grid);
 
 // Possible position shifts (row, col) to check after rotation
 static const int wall_kick_attempts[10][2] = {
@@ -51,7 +52,7 @@ void destroy_grid(Grid* grid) {
 	free(grid);
 }
 
-bool validate_piece_position(Grid* grid, Piece* piece, int row, int col) {
+bool validate_piece_at_position(Grid* grid, Piece* piece, int row, int col) {
 	for (int i = 0; i < piece->height; i++) {
 		for (int j = 0; j < piece->width; j++) {
 			if (piece->shape[i * piece->width + j]) {
@@ -64,27 +65,33 @@ bool validate_piece_position(Grid* grid, Piece* piece, int row, int col) {
 	return true;
 }
 
+bool validate_piece_position(Grid* grid, Piece* piece) {
+	return validate_piece_at_position(grid, piece, piece->row_pos, piece->col_pos);
+}
 
-bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock, bool drop) {
+
+bool add_piece_to_grid(Grid* grid, Piece* piece, bool lock, bool drop) {
 	if (drop) {
-		return drop_piece_on_grid(grid, piece, row, col, lock);
+		return drop_piece_on_grid(grid, piece, lock);
 	}
 
-	if (!insert_piece_at_position(grid, piece, row, col, lock)) {
+	if (!insert_piece(grid, piece, lock)) {
 		return false;
 	}
 
 	// Predict where the piece will fall and mark those cells as shadow
 	if (!lock) {
-		mark_shadow_predictions(grid, piece, row, col);
+		mark_shadow_predictions(grid, piece);
 	}
 
 	return true;
 }
 
-static void mark_shadow_predictions(Grid* grid, Piece* piece, int row, int col) {
+static void mark_shadow_predictions(Grid* grid, Piece* piece) {
+	int row = piece->row_pos;
+	int col = piece->col_pos;
 	for (int i = 1; i <= grid->height - row; i++) {
-		if (!validate_piece_position(grid, piece, row + i, col)) {
+		if (!validate_piece_at_position(grid, piece, row + i, col)) {
 			for (int j = 0; j < piece->height; j++) {
 				for (int k = 0; k < piece->width; k++) {
 					bool shape_cell = piece->shape[j * piece->width + k];
@@ -100,25 +107,28 @@ static void mark_shadow_predictions(Grid* grid, Piece* piece, int row, int col) 
 	}
 }
 
-static bool drop_piece_on_grid(Grid* grid, Piece* piece, int row, int col, bool lock) {
+static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock) {
+	int row = piece->row_pos;
+	int col = piece->col_pos;
 	// Predict where the piece will fall and mark those cells as shadow
 	for (int i = 1; i <= grid->height - row; i++) {
-		if (!validate_piece_position(grid, piece, row + i, col)) {
-			return insert_piece_at_position(grid, piece, row + i - 1, col, lock);
+		if (!validate_piece_at_position(grid, piece, row + i, col)) {
+			piece->row_pos = row + i - 1;
+			return insert_piece(grid, piece, lock);
 		}
 	}
 	return true;
 }
 
 // Also returns new row and column position for center rotation
-Piece* try_rotate_piece(Grid* grid, Piece* piece, int* row, int* col) {
+Piece* try_rotate_piece(Grid* grid, Piece* piece) {
 	Piece* rotated_piece = rotate_piece(piece);
 	if (!rotated_piece) {
 		return NULL;
 	}
 
-	int center_row = *row + piece->height / 2;
-	int center_col = *col + piece->width / 2;
+	int center_row = piece->row_pos + piece->height / 2;
+	int center_col = piece->col_pos + piece->width / 2;
 
 	int new_row = center_row - rotated_piece->height / 2;
 	int new_col = center_col - rotated_piece->width / 2;
@@ -128,9 +138,9 @@ Piece* try_rotate_piece(Grid* grid, Piece* piece, int* row, int* col) {
 		int attempt_row = new_row + wall_kick_attempts[i][0];
 		int attempt_col = new_col + wall_kick_attempts[i][1];
 
-		if (validate_piece_position(grid, rotated_piece, attempt_row, attempt_col)) {
-			*row = attempt_row;
-			*col = attempt_col;
+		if (validate_piece_at_position(grid, rotated_piece, attempt_row, attempt_col)) {
+			rotated_piece->row_pos = attempt_row;
+			rotated_piece->col_pos = attempt_col;
 			return rotated_piece;
 		}
 	}
@@ -154,7 +164,7 @@ void clear_unlocked_cells(Grid* grid) {
 	}
 }
 
-void clear_all_cells(Grid* grid) {
+void clear_grid(Grid* grid) {
 	for (int i = 0; i < grid->height; i++)
 	{
 		for (int j = 0; j < grid->width; j++)
@@ -164,6 +174,7 @@ void clear_all_cells(Grid* grid) {
 			grid->cells[i][j].locked = false;
 		}
 	}
+	clear_dynamic_array(grid->locked_pieces);
 }
 
 void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer) {
@@ -221,22 +232,33 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 	}
 }
 
-static bool insert_piece_at_position(Grid* grid, Piece* piece, int row, int col, bool lock) {
-	if (!validate_piece_position(grid, piece, row, col)) {
+static bool insert_piece(Grid* grid, Piece* piece, bool lock) {
+	if (!validate_piece_position(grid, piece)) {
 		return false;
+	}
+
+	int row = piece->row_pos;
+	int col = piece->col_pos;
+
+	Piece* piece_copy = piece; // Default to original unless locking
+	if (lock && !dynamic_array_contains(grid->locked_pieces, piece)) {
+		piece_copy = copy_piece(piece); // Locked implies the Grid is now meant to own the piece. Copy it so Game can destroy its copy later.
+		add_to_dynamic_array(grid->locked_pieces, piece_copy);
 	}
 
 	// Draw every cell of the piece to it's corresponding cell in the grid
 	for (int i = 0; i < piece->height; i++) {
 		for (int j = 0; j < piece->width; j++) {
 			if (piece->shape[i * piece->width + j]) {
-				grid->cells[row + i][col + j].piece = piece;
+				grid->cells[row + i][col + j].piece = piece_copy;
 				if (lock){
 					grid->cells[row + i][col + j].locked = true;
 				}
 			}
 		}
 	}
+
+	return true;
 }
 
 static bool validate_grid_position(Grid* grid, int row, int col) {
@@ -274,5 +296,84 @@ static void init_cells_in_row(Cell* cells, int width) {
 		cells[i].piece = NULL;
 		cells[i].locked = false;
 		cells[i].shadow = false;
+	}
+}
+
+void clear_full_rows(Grid* grid) {
+	for (int i = 0; i < grid->height; i++) {
+		bool row_full = true;
+		for (int j = 0; j < grid->width; j++) {
+			if (!grid->cells[i][j].locked) {
+				row_full = false;
+				break;
+			}
+		}
+		if (row_full) {
+			// Clear the row
+			for (int j = 0; j < grid->width; j++) {
+				if (grid->cells[i][j].piece) {
+					Piece* piece = grid->cells[i][j].piece;
+
+					// Convert global grid coordinates to local piece coordinates
+					int local_row = i - piece->row_pos;
+					int local_col = j - piece->col_pos;
+
+					if (local_row >= 0 && local_row < piece->height && local_col >= 0 && local_col < piece->width) {
+						piece->shape[local_row * piece->width + local_col] = false;
+					}
+
+					grid->cells[i][j].piece = NULL;
+					grid->cells[i][j].locked = false;
+				}
+			}
+		}
+	}
+
+	remove_empty_pieces(grid);
+
+	// Move pieces down
+
+	// First unlock every piece cell to prevent interference from the drop function. Drop function will lock what needs to be locked
+	//for (int i = 0; i < grid->height; i++) {
+	//	for (int j = 0; j < grid->width; j++) {
+	//		if (grid->cells[i][j].piece) {
+	//			grid->cells[i][j].locked = false;
+	//		}
+	//	}
+	//}
+
+	// Go over every cell from bottom to top and drop the piece down
+	//for (int i = grid->height - 1; i >= 0; i--) {
+	//	for (int j = 0; j < grid->width; j++) {
+	//		if (grid->cells[i][j].piece) {
+	//			Piece* piece = grid->cells[i][j].piece;
+	//			bool success = drop_piece_on_grid(grid, piece, false);
+	//			if (success) {
+	//				grid->cells[i][j].piece = NULL;
+	//			}
+	//		}
+	//	}
+	//}
+
+	// Lock the pieces in their new positions
+	//for (int i = 0; i < grid->height; i++) {
+	//	for (int j = 0; j < grid->width; j++) {
+	//		if (grid->cells[i][j].piece) {
+	//			grid->cells[i][j].locked = true;
+	//		}
+	//	}
+	//}
+}
+
+static void remove_empty_pieces(Grid* grid) {
+	for (int i = 0; i < grid->locked_pieces->size; i++) {
+		Piece* piece = (Piece*)grid->locked_pieces->items[i];
+
+		if (is_piece_empty(piece)) {
+			remove_from_dynamic_array(grid->locked_pieces, piece);
+			destroy_piece(piece);
+			printf("Removed empty piece\n");
+			i--; // Adjust index since we removed an item
+		}
 	}
 }
