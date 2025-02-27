@@ -23,4 +23,6 @@ typedef struct {
 
 Piece* create_piece(enum PieceType type);
 
+Piece* rotate_piece(const Piece* piece);
+
 void destroy_piece(Piece* piece);

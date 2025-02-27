@@ -10,6 +10,21 @@ static void init_cells_in_row(Cell* cells, int width);
 static bool validate_grid_position(Grid* grid, int row, int col);
 static bool insert_piece_at_position(Grid* grid, Piece* piece, int row, int col, bool lock);
 static bool drop_piece_on_grid(Grid* grid, Piece* piece, int row, int col);
+static void mark_shadow_predictions(Grid* grid, Piece* piece, int row, int col);
+
+// Possible position shifts (row, col) to check after rotation
+static const int wall_kick_attempts[10][2] = {
+	{  0,  0 }, // Default position
+	{  0, -1 }, // Left 1
+	{  0, +1 }, // Right 1
+	{ +1,  0 }, // Down 1
+	{ -1,  0 }, // Up 1
+	{ +1, -1 }, // Down-left
+	{ +1, +1 }, // Down-right
+	{ -1, +1 }, // Up-right
+	{  0, +2 }, // Long piece needs more room
+	{ +2,  0 }  // Long piece needs more room
+};
 
 Grid* create_grid(int width, int height, bool show_lines) {
 	Grid* grid = malloc(sizeof(Grid));
@@ -57,7 +72,13 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock, bo
 	}
 
 	// Predict where the piece will fall and mark those cells as shadow
-	for (int i = 1; i < grid->height - row; i++) {
+	mark_shadow_predictions(grid, piece, row, col);
+
+	return true;
+}
+
+static void mark_shadow_predictions(Grid* grid, Piece* piece, int row, int col) {
+	for (int i = 1; i <= grid->height - row; i++) {
 		if (!validate_piece_position(grid, piece, row + i, col)) {
 			for (int j = 0; j < piece->height; j++) {
 				for (int k = 0; k < piece->width; k++) {
@@ -72,18 +93,46 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, int row, int col, bool lock, bo
 			break;
 		}
 	}
-
-	return true;
 }
 
 static bool drop_piece_on_grid(Grid* grid, Piece* piece, int row, int col) {
 	// Predict where the piece will fall and mark those cells as shadow
-	for (int i = 1; i < grid->height - row; i++) {
+	for (int i = 1; i <= grid->height - row; i++) {
 		if (!validate_piece_position(grid, piece, row + i, col)) {
 			return insert_piece_at_position(grid, piece, row + i - 1, col, true);
 		}
 	}
 	return true;
+}
+
+// Also returns new row and column position for center rotation
+Piece* try_rotate_piece(Grid* grid, Piece* piece, int* row, int* col) {
+	Piece* rotated_piece = rotate_piece(piece);
+	if (!rotated_piece) {
+		return NULL;
+	}
+
+	int center_row = *row + piece->height / 2;
+	int center_col = *col + piece->width / 2;
+
+	int new_row = center_row - rotated_piece->height / 2;
+	int new_col = center_col - rotated_piece->width / 2;
+
+	// Try all possible wall kick positions
+	for (int i = 0; i < 10; i++) {
+		int attempt_row = new_row + wall_kick_attempts[i][0];
+		int attempt_col = new_col + wall_kick_attempts[i][1];
+
+		if (validate_piece_position(grid, rotated_piece, attempt_row, attempt_col)) {
+			*row = attempt_row;
+			*col = attempt_col;
+			return rotated_piece;
+		}
+	}
+
+	// If all attempts fail, discard rotation
+	destroy_piece(rotated_piece);
+	return NULL;
 }
 
 void clear_unlocked_cells(Grid* grid) {

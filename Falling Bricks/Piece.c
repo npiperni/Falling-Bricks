@@ -111,6 +111,32 @@ Piece* create_piece(enum PieceType type) {
 	return piece;
 }
 
+Piece* rotate_piece(const Piece* piece) {
+	Piece* rotated_piece = malloc(sizeof(Piece));
+
+	if (!rotated_piece) {
+		fprintf(stderr, "Error: Failed to allocate memory for rotated Piece\n");
+		return NULL;
+	}
+
+	int new_width = piece->height;
+	int new_height = piece->width;
+	rotated_piece->width = new_width;
+	rotated_piece->height = new_height;
+	rotated_piece->color = piece->color;
+	rotated_piece->shape = calloc(new_width * new_height, sizeof(bool));
+	if (calloc_failed(rotated_piece->shape)) { free(piece); return NULL; }
+
+	for (int i = 0; i < new_width; i++) {
+		for (int j = 0; j < new_height; j++) {
+			rotated_piece->shape[j * new_width + (new_width - 1 - i)] = piece->shape[i * piece->width + j];
+			// shape[j][new_width - 1 - i] = piece->shape[i][j];
+		}
+	}
+
+	return rotated_piece;
+}
+
 void destroy_piece(Piece* piece) {
 	free(piece->shape);
 	free(piece);

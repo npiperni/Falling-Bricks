@@ -35,7 +35,9 @@ struct Flags {
 	bool move_player_down;
 	bool move_player_left;
 	bool move_player_right;
+	bool rotate_player;
 	bool drop_player;
+	bool pause;
 } flags = { 0 };
 
 int init_window(void) {
@@ -119,9 +121,12 @@ void process_input() {
 		if (key == SDLK_ESCAPE) {
 			game_is_running = FALSE;
 		} 
+		else if (key == SDLK_p) {
+			flags.pause = !flags.pause;
+		}
 		else if (key == SDLK_UP) {
 			ball.y -= 50;
-			player.row--;
+			flags.rotate_player = true;
 		} 
 		else if (key == SDLK_DOWN) {
 			ball.y += 50;
@@ -163,6 +168,10 @@ void update() {
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
 	last_frame_time = SDL_GetTicks();
 
+	if (flags.pause) {
+		return;
+	}
+
 	ball.x += 70 * delta_time;
 	ball.y += 50 * delta_time;
 	//printf("%d\n", SDL_GetTicks());
@@ -187,6 +196,7 @@ void update() {
 	if (flags.move_player_down) {
 		lock_piece = !move_player_down(grid, piece);
 		flags.move_player_down = false;
+		flags.rotate_player = false;
 	}
 	if (flags.move_player_left) {
 		move_player_left(grid, piece);
@@ -199,6 +209,15 @@ void update() {
 	if (flags.drop_player) {
 		drop = true;
 		flags.drop_player = false;
+	}
+	if (flags.rotate_player) {
+		Piece* rotated_piece = try_rotate_piece(grid, piece, &player.row, &player.col);
+		if (rotated_piece) {
+			destroy_piece(piece);
+			// Update to rotated piece and new position after rotation
+			piece = rotated_piece;
+		}
+		flags.rotate_player = false;
 	}
 
 	clear_unlocked_cells(grid);
@@ -254,7 +273,7 @@ void destroy_window() {
 int main(int argc, char* args[]) {
 
 	grid = create_grid(10, 20, true);
-	piece = create_piece(T);
+	piece = create_piece(LINE);
 	if (!piece || !grid)
 	{
 		fprintf(stderr, "Fatal Error\n"); return 1;
