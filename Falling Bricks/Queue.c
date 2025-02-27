@@ -1,11 +1,11 @@
 #include "Queue.h"
 #include <stdlib.h>
 
-Queue* create_queue() {
+Queue* create_queue(void (*data_destroyer)(void*)) {
     Queue* queue = (Queue*)malloc(sizeof(Queue));
     queue->front = queue->rear = NULL;
 	queue->size = 0;
-	queue->data_destroyer = NULL;
+	queue->data_destroyer = data_destroyer;
     return queue;
 }
 

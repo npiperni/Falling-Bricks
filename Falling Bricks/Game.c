@@ -77,8 +77,7 @@ bool setup() {
 	queue_grid = create_grid(6, 19, true);
 	queue_grid->show_grid_lines = false;
 
-	next_pieces = create_queue();
-	next_pieces->data_destroyer = destroy_piece;
+	next_pieces = create_queue(destroy_piece);
 
 	for (int i = 0; i < 6; i++) {
 		Piece* new_piece = create_random_piece();

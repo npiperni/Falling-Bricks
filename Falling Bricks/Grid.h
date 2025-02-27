@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <stdbool.h>
 #include "Piece.h"
-
+#include "DynamicArray.h"
 
 typedef struct {
 	Piece* piece;
@@ -16,6 +16,7 @@ typedef struct {
 	int width;
 	int height;
 	bool show_grid_lines;
+	DynamicArray* locked_pieces;
 } Grid;
 
 Grid* create_grid(int width, int height, bool show_lines);

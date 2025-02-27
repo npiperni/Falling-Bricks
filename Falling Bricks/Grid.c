@@ -29,6 +29,11 @@ Grid* create_grid(int width, int height, bool show_lines) {
 		fprintf(stderr, "Error: Failed to allocate memory for Grid\n");
 		return NULL;
 	}
+	grid->locked_pieces = create_dynamic_array(10, destroy_piece);
+	if (!grid->locked_pieces) {
+		free(grid);
+		return NULL;
+	}
 	grid->width = width;
 	grid->height = height;
 	grid->show_grid_lines = show_lines;
@@ -42,6 +47,7 @@ Grid* create_grid(int width, int height, bool show_lines) {
 
 void destroy_grid(Grid* grid) {
 	deallocate_cells(grid->cells, grid->height);
+	destroy_dynamic_array(grid->locked_pieces);
 	free(grid);
 }
 

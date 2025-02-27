@@ -12,7 +12,7 @@ typedef struct {
     void (*data_destroyer)(void*);
 } Queue;
 
-Queue* create_queue();
+Queue* create_queue(void (*data_destroyer)(void*));
 
 void enqueue(Queue* queue, void* data);
 
