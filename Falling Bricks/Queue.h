@@ -8,6 +8,7 @@ typedef struct Node {
 typedef struct {
     Node* front;
     Node* rear;
+    int size;
     void (*data_destroyer)(void*);
 } Queue;
 

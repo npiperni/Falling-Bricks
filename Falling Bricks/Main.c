@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL.h>
+#include <time.h>
 
 #include "Constants.h"
 #include "Game.h"
@@ -43,6 +44,7 @@ void destroy_window(SDL_Window* window, SDL_Renderer* renderer) {
 }
 
 int main(int argc, char* args[]) {
+	srand(time(NULL));
 	
 	SDL_Window* window = NULL;
 	SDL_Renderer* renderer = NULL;

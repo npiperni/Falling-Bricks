@@ -4,6 +4,8 @@
 Queue* create_queue() {
     Queue* queue = (Queue*)malloc(sizeof(Queue));
     queue->front = queue->rear = NULL;
+	queue->size = 0;
+	queue->data_destroyer = NULL;
     return queue;
 }
 
@@ -11,6 +13,7 @@ void enqueue(Queue* queue, void* data) {
     Node* new_node = (Node*)malloc(sizeof(Node));
     new_node->data = data;
     new_node->next = NULL;
+    queue->size++;
 
     if (!queue->rear) {
         queue->front = queue->rear = new_node;
@@ -30,6 +33,7 @@ void* dequeue(Queue* queue) {
     if (!queue->front) queue->rear = NULL;
 
     free(temp);
+    queue->size--;
     return data;
 }
 
@@ -41,6 +45,7 @@ void clear_queue(Queue* queue) {
         }
     }
     queue->rear = NULL;
+    queue->size = 0;
 }
 
 void destroy_queue(Queue* queue) {
