@@ -167,6 +167,30 @@ Piece* copy_piece(const Piece* piece) {
 	return new_piece;
 }
 
+Piece* copy_piece_region(Piece* original, int start_row, int start_col, int new_height, int new_width) {
+	Piece* new_piece = malloc(sizeof(Piece));
+	if (!new_piece) {
+		fprintf(stderr, "Error: Failed to allocate memory for copied Piece region\n");
+		return NULL;
+	}
+	new_piece->width = new_width;
+	new_piece->height = new_height;
+	new_piece->color = original->color;
+	new_piece->type = original->type;
+	new_piece->row_pos = 0;
+	new_piece->col_pos = 0;
+	new_piece->shape = calloc(new_width * new_height, sizeof(bool));
+	if (calloc_failed(new_piece->shape)) { free(new_piece); return NULL; }
+
+	for (int i = 0; i < new_height; i++) {
+		for (int j = 0; j < new_width; j++) {
+			new_piece->shape[i * new_width + j] = original->shape[(i + start_row) * original->width + (j + start_col)];
+		}
+	}
+
+	return new_piece;
+}
+
 void destroy_piece(Piece* piece) {
 	free(piece->shape);
 	free(piece);

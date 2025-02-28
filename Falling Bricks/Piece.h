@@ -32,4 +32,6 @@ bool is_piece_empty(const Piece* piece);
 
 Piece* copy_piece(const Piece* piece);
 
+Piece* copy_piece_region(Piece* original, int start_row, int start_col, int new_height, int new_width);
+
 void destroy_piece(Piece* piece);

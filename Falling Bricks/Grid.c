@@ -110,8 +110,7 @@ static void mark_shadow_predictions(Grid* grid, Piece* piece) {
 static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock) {
 	int row = piece->row_pos;
 	int col = piece->col_pos;
-	// Predict where the piece will fall and mark those cells as shadow
-	for (int i = 1; i <= grid->height - row; i++) {
+	for (int i = 0; i <= grid->height - row; i++) {
 		if (!validate_piece_at_position(grid, piece, row + i, col)) {
 			piece->row_pos = row + i - 1;
 			return insert_piece(grid, piece, lock);
@@ -299,7 +298,29 @@ static void init_cells_in_row(Cell* cells, int width) {
 	}
 }
 
+static void test_print(Grid* grid) {
+	// Print the state of the board for debugging
+	for (int i = 0; i < grid->height; i++) {
+		for (int j = 0; j < grid->width; j++) {
+			if (grid->cells[i][j].piece && grid->cells[i][j].locked) {
+				printf("X");
+			}
+			else if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
+				printf("P");
+			}
+			else if (!grid->cells[i][j].piece && grid->cells[i][j].locked) {
+				printf("L");
+			}
+			else {
+				printf("0");
+			}
+		}
+		printf("\n");
+	}
+}
+
 void clear_full_rows(Grid* grid) {
+	bool cleared_rows = false;
 	for (int i = 0; i < grid->height; i++) {
 		bool row_full = true;
 		for (int j = 0; j < grid->width; j++) {
@@ -322,47 +343,123 @@ void clear_full_rows(Grid* grid) {
 						piece->shape[local_row * piece->width + local_col] = false;
 					}
 
+					// Check if the piece spans both above and below
+					bool has_above = false;
+					bool has_below = false;
+
+					// Check the entire row above
+					if (local_row > 0) {
+						for (int c = 0; c < piece->width; c++) {
+							if (piece->shape[(local_row - 1) * piece->width + c]) {
+								has_above = true;
+								break; // Stop early if any block is found above
+							}
+						}
+					}
+
+					// Check the entire row below
+					if (local_row < piece->height - 1) {
+						for (int c = 0; c < piece->width; c++) {
+							if (piece->shape[(local_row + 1) * piece->width + c]) {
+								has_below = true;
+								break; // Stop early if any block is found below
+							}
+						}
+					}
+
+					if (has_above && has_below) {
+						// Piece is split! Create two new pieces
+						Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
+						Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
+
+						top_half->row_pos = piece->row_pos;
+						top_half->col_pos = piece->col_pos;
+						bottom_half->row_pos = piece->row_pos + local_row + 1;
+						bottom_half->col_pos = piece->col_pos;
+
+						// Reassign grid cell pointers to the new pieces
+						for (int r = 0; r < top_half->height; r++) {
+							for (int c = 0; c < top_half->width; c++) {
+								if (top_half->shape[r * top_half->width + c]) {
+									grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
+								}
+							}
+						}
+
+						for (int r = 0; r < bottom_half->height; r++) {
+							for (int c = 0; c < bottom_half->width; c++) {
+								if (bottom_half->shape[r * bottom_half->width + c]) {
+									grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
+								}
+							}
+						}
+
+						add_to_dynamic_array(grid->locked_pieces, top_half);
+						add_to_dynamic_array(grid->locked_pieces, bottom_half);
+
+						// Remove old piece from tracking
+						remove_from_dynamic_array(grid->locked_pieces, piece);
+						destroy_piece(piece);
+					}
+
 					grid->cells[i][j].piece = NULL;
 					grid->cells[i][j].locked = false;
 				}
 			}
+			cleared_rows = true;
 		}
 	}
 
 	remove_empty_pieces(grid);
 
+	if (!cleared_rows) {
+		return;
+	}
 	// Move pieces down
 
 	// First unlock every piece cell to prevent interference from the drop function. Drop function will lock what needs to be locked
-	//for (int i = 0; i < grid->height; i++) {
-	//	for (int j = 0; j < grid->width; j++) {
-	//		if (grid->cells[i][j].piece) {
-	//			grid->cells[i][j].locked = false;
-	//		}
-	//	}
-	//}
+	for (int i = 0; i < grid->height; i++) {
+		for (int j = 0; j < grid->width; j++) {
+			if (grid->cells[i][j].piece) {
+				grid->cells[i][j].locked = false;
+			}
+		}
+	}
 
-	// Go over every cell from bottom to top and drop the piece down
-	//for (int i = grid->height - 1; i >= 0; i--) {
-	//	for (int j = 0; j < grid->width; j++) {
-	//		if (grid->cells[i][j].piece) {
-	//			Piece* piece = grid->cells[i][j].piece;
-	//			bool success = drop_piece_on_grid(grid, piece, false);
-	//			if (success) {
-	//				grid->cells[i][j].piece = NULL;
-	//			}
-	//		}
-	//	}
-	//}
+	DynamicArray* pieces = create_dynamic_array(10, NULL);
+	for (int i = grid->height - 1; i >= 0; i--) {
+		for (int j = 0; j < grid->width; j++) {
+			if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
+				Piece* piece = grid->cells[i][j].piece;
+				if (!dynamic_array_contains(pieces, piece)) {
+					add_to_dynamic_array(pieces, piece);
+				}
+				for (int k = 0; k < piece->height; k++) {
+					for (int l = 0; l < piece->width; l++) {
+						if (piece->shape[k * piece->width + l]) {
+							grid->cells[k + piece->row_pos][l + piece->col_pos].piece = NULL;
+						}
+					}
+				}
 
-	// Lock the pieces in their new positions
-	//for (int i = 0; i < grid->height; i++) {
-	//	for (int j = 0; j < grid->width; j++) {
-	//		if (grid->cells[i][j].piece) {
-	//			grid->cells[i][j].locked = true;
-	//		}
-	//	}
-	//}
+				drop_piece_on_grid(grid, piece, false);
+			}
+		}
+		for (int j = 0; j < pieces->size; j++) {
+			Piece* piece = get_from_dynamic_array(pieces, j);
+			for (int l = 0; l < piece->height; l++) {
+				for (int m = 0; m < piece->width; m++) {
+					if (piece->shape[l * piece->width + m] && !grid->cells[l + piece->row_pos][m + piece->col_pos].locked) {
+						grid->cells[l + piece->row_pos][m + piece->col_pos].locked = true;
+					}
+				}
+			}
+		}
+		clear_dynamic_array(pieces);
+
+	}
+	destroy_dynamic_array(pieces);
+	
 }
 
 static void remove_empty_pieces(Grid* grid) {
