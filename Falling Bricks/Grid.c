@@ -319,6 +319,37 @@ static void test_print(Grid* grid) {
 	}
 }
 
+static void test_print_file(Grid* grid, const char* label, int index) {
+	FILE* file = fopen("Debugging.txt", "a"); // Open in append mode to keep history
+	if (!file) {
+		fprintf(stderr, "Error: Failed to open file for writing\n");
+		return;
+	}
+
+	fprintf(file, "Grid State: %s at index %d\n", label, index);
+	for (int i = 0; i < grid->height; i++) {
+		for (int j = 0; j < grid->width; j++) {
+			if (grid->cells[i][j].piece && grid->cells[i][j].locked) {
+				fputc('X', file);
+			}
+			else if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
+				fputc('P', file);
+			}
+			else if (!grid->cells[i][j].piece && grid->cells[i][j].locked) {
+				fputc('L', file);
+			}
+			else {
+				fputc('0', file);
+			}
+		}
+		fputc('\n', file);
+	}
+	fprintf(file, "\n"); // Add a blank line for readability
+
+	fclose(file);
+}
+
+// Need to do a recursive check if dropping a piece causes a new row to be full
 void clear_full_rows(Grid* grid) {
 	bool cleared_rows = false;
 	for (int i = 0; i < grid->height; i++) {
@@ -330,6 +361,8 @@ void clear_full_rows(Grid* grid) {
 			}
 		}
 		if (row_full) {
+			test_print_file(grid, "Before Row Clearing", i);
+			DynamicArray* pieces_to_split = create_dynamic_array(10, NULL);
 			// Clear the row
 			for (int j = 0; j < grid->width; j++) {
 				if (grid->cells[i][j].piece) {
@@ -367,46 +400,56 @@ void clear_full_rows(Grid* grid) {
 						}
 					}
 
-					if (has_above && has_below) {
-						// Piece is split! Create two new pieces
-						Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
-						Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
-
-						top_half->row_pos = piece->row_pos;
-						top_half->col_pos = piece->col_pos;
-						bottom_half->row_pos = piece->row_pos + local_row + 1;
-						bottom_half->col_pos = piece->col_pos;
-
-						// Reassign grid cell pointers to the new pieces
-						for (int r = 0; r < top_half->height; r++) {
-							for (int c = 0; c < top_half->width; c++) {
-								if (top_half->shape[r * top_half->width + c]) {
-									grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
-								}
-							}
-						}
-
-						for (int r = 0; r < bottom_half->height; r++) {
-							for (int c = 0; c < bottom_half->width; c++) {
-								if (bottom_half->shape[r * bottom_half->width + c]) {
-									grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
-								}
-							}
-						}
-
-						add_to_dynamic_array(grid->locked_pieces, top_half);
-						add_to_dynamic_array(grid->locked_pieces, bottom_half);
-
-						// Remove old piece from tracking
-						remove_from_dynamic_array(grid->locked_pieces, piece);
-						destroy_piece(piece);
+					if (has_above && has_below && !dynamic_array_contains(pieces_to_split, piece)) {
+						add_to_dynamic_array(pieces_to_split, piece);
 					}
 
 					grid->cells[i][j].piece = NULL;
 					grid->cells[i][j].locked = false;
 				}
 			}
+			for (int j = 0; j < pieces_to_split->size; j++) {
+				// Piece is split! Create two new pieces
+				Piece* piece = get_from_dynamic_array(pieces_to_split, j);
+				int local_row = i - piece->row_pos;
+				Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
+				Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
+
+				top_half->color = (SDL_Color){ 60, 128, 60, SDL_ALPHA_OPAQUE };
+				bottom_half->color = (SDL_Color){ 128, 60, 128, SDL_ALPHA_OPAQUE };
+
+				top_half->row_pos = piece->row_pos;
+				top_half->col_pos = piece->col_pos;
+				bottom_half->row_pos = piece->row_pos + local_row + 1;
+				bottom_half->col_pos = piece->col_pos;
+
+				// Reassign grid cell pointers to the new pieces
+				for (int r = 0; r < top_half->height; r++) {
+					for (int c = 0; c < top_half->width; c++) {
+						if (top_half->shape[r * top_half->width + c]) {
+							grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
+						}
+					}
+				}
+
+				for (int r = 0; r < bottom_half->height; r++) {
+					for (int c = 0; c < bottom_half->width; c++) {
+						if (bottom_half->shape[r * bottom_half->width + c]) {
+							grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
+						}
+					}
+				}
+
+				add_to_dynamic_array(grid->locked_pieces, top_half);
+				add_to_dynamic_array(grid->locked_pieces, bottom_half);
+
+				// Remove old piece from tracking
+				remove_from_dynamic_array(grid->locked_pieces, piece);
+				destroy_piece(piece);
+			}
+			destroy_dynamic_array(pieces_to_split);
 			cleared_rows = true;
+			test_print_file(grid, "After Row Clearing", i);
 		}
 	}
 
@@ -417,7 +460,7 @@ void clear_full_rows(Grid* grid) {
 	}
 	// Move pieces down
 
-	// First unlock every piece cell to prevent interference from the drop function. Drop function will lock what needs to be locked
+	// First unlock every piece cell to prevent interference from the drop function
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
 			if (grid->cells[i][j].piece) {
@@ -426,13 +469,16 @@ void clear_full_rows(Grid* grid) {
 		}
 	}
 
-	DynamicArray* pieces = create_dynamic_array(10, NULL);
+	test_print_file(grid, "Before Drop", 0);
+
+	// Gather all pieces to be dropped and unmark their previous positions
+	DynamicArray* pieces_to_drop = create_dynamic_array(10, NULL);
 	for (int i = grid->height - 1; i >= 0; i--) {
 		for (int j = 0; j < grid->width; j++) {
 			if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
 				Piece* piece = grid->cells[i][j].piece;
-				if (!dynamic_array_contains(pieces, piece)) {
-					add_to_dynamic_array(pieces, piece);
+				if (!dynamic_array_contains(pieces_to_drop, piece)) {
+					add_to_dynamic_array(pieces_to_drop, piece);
 				}
 				for (int k = 0; k < piece->height; k++) {
 					for (int l = 0; l < piece->width; l++) {
@@ -441,12 +487,20 @@ void clear_full_rows(Grid* grid) {
 						}
 					}
 				}
-
-				drop_piece_on_grid(grid, piece, false);
 			}
 		}
-		for (int j = 0; j < pieces->size; j++) {
-			Piece* piece = get_from_dynamic_array(pieces, j);
+
+		// Drop the pieces
+		for (int j = 0; j < pieces_to_drop->size; j++) {
+			Piece* piece = get_from_dynamic_array(pieces_to_drop, j);
+			drop_piece_on_grid(grid, piece, false);
+		}
+
+		test_print_file(grid, "After Drop", i);
+
+		// Lock the pieces in place
+		for (int j = 0; j < pieces_to_drop->size; j++) {
+			Piece* piece = get_from_dynamic_array(pieces_to_drop, j);
 			for (int l = 0; l < piece->height; l++) {
 				for (int m = 0; m < piece->width; m++) {
 					if (piece->shape[l * piece->width + m] && !grid->cells[l + piece->row_pos][m + piece->col_pos].locked) {
@@ -455,10 +509,12 @@ void clear_full_rows(Grid* grid) {
 				}
 			}
 		}
-		clear_dynamic_array(pieces);
+		clear_dynamic_array(pieces_to_drop);
+
+		test_print_file(grid, "After Lock", i);
 
 	}
-	destroy_dynamic_array(pieces);
+	destroy_dynamic_array(pieces_to_drop);
 	
 }
 
