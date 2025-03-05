@@ -16,13 +16,15 @@ int last_drop_time = 0;
 float scale_factor = 1;
 
 bool round_active = false;
+bool dropping_pieces = false;
 
 Piece* player_piece = NULL;
-
 Grid* game_board = NULL;
 
 Grid* queue_grid = NULL;
 Queue* next_pieces = NULL;
+
+SDL_Renderer* debug_renderer = NULL;
 
 struct Flags {
 	bool move_player_down;
@@ -175,6 +177,14 @@ void update() {
 	bool drop = false;
 
 	if (round_active) {
+		if (dropping_pieces) {
+			SDL_Delay(1000);
+			drop_all_pieces(game_board);
+			if (check_and_clear_full_rows(game_board) == 0) {
+				dropping_pieces = false;
+			}
+			return;
+		}
 		if (SDL_GetTicks() - last_drop_time >= 1000) {
 			last_drop_time = SDL_GetTicks();
 			flags.move_player_down = true;
@@ -197,6 +207,12 @@ void update() {
 			drop = true;
 			lock_piece = true;
 			flags.drop_player = false;
+			char buffer[100];
+			sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
+			SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+			SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+			SDL_SaveBMP(sshot, buffer);
+			SDL_FreeSurface(sshot);
 		}
 		if (flags.rotate_player) {
 			Piece* rotated_piece = try_rotate_piece(game_board, player_piece);
@@ -217,8 +233,6 @@ void update() {
 		}
 
 		if (lock_piece) {
-			// Check for full rows
-			clear_full_rows(game_board);
 			destroy_piece(player_piece);
 			player_piece = dequeue(next_pieces);
 			player_piece->row_pos = 0;
@@ -235,11 +249,20 @@ void update() {
 				add_piece_to_grid(queue_grid, next_piece, true, false);
 				current = current->next;
 			}
+
+			// Check for full rows
+			if (check_and_clear_full_rows(game_board) > 0) {
+				dropping_pieces = true;
+				return;
+			}
+
+			
 		}
 	}
 }
 
 void render(SDL_Renderer* renderer) {
+	debug_renderer = renderer;
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 

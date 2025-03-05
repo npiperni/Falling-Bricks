@@ -116,7 +116,7 @@ static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock) {
 			return insert_piece(grid, piece, lock);
 		}
 	}
-	return true;
+	return false;
 }
 
 // Also returns new row and column position for center rotation
@@ -227,6 +227,10 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 				SDL_SetRenderDrawColor(renderer, 128, 128, 128, 128);
 				SDL_RenderFillRect(renderer, &cell_rect);
 			}
+			if (grid->cells[i][j].locked && !grid->cells[i][j].piece) {
+				SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
+				SDL_RenderFillRect(renderer, &cell_rect);
+			}
 		}
 	}
 }
@@ -250,9 +254,7 @@ static bool insert_piece(Grid* grid, Piece* piece, bool lock) {
 		for (int j = 0; j < piece->width; j++) {
 			if (piece->shape[i * piece->width + j]) {
 				grid->cells[row + i][col + j].piece = piece_copy;
-				if (lock){
-					grid->cells[row + i][col + j].locked = true;
-				}
+				grid->cells[row + i][col + j].locked = lock;
 			}
 		}
 	}
@@ -350,8 +352,8 @@ static void test_print_file(Grid* grid, const char* label, int index) {
 }
 
 // Need to do a recursive check if dropping a piece causes a new row to be full
-void clear_full_rows(Grid* grid) {
-	bool cleared_rows = false;
+int check_and_clear_full_rows(Grid* grid) {
+	int cleared_rows = 0;
 	for (int i = 0; i < grid->height; i++) {
 		bool row_full = true;
 		for (int j = 0; j < grid->width; j++) {
@@ -448,19 +450,38 @@ void clear_full_rows(Grid* grid) {
 				destroy_piece(piece);
 			}
 			destroy_dynamic_array(pieces_to_split);
-			cleared_rows = true;
+			cleared_rows++;
 			test_print_file(grid, "After Row Clearing", i);
 		}
 	}
 
 	remove_empty_pieces(grid);
+	return cleared_rows;
+}
 
-	if (!cleared_rows) {
-		return;
+static void clear_piece_pointers(Grid* grid, Piece* piece) {
+	for (int k = 0; k < piece->height; k++) {
+		for (int l = 0; l < piece->width; l++) {
+			if (piece->shape[k * piece->width + l]) {
+				SDL_assert(grid->cells[k + piece->row_pos][l + piece->col_pos].piece == piece);
+				grid->cells[k + piece->row_pos][l + piece->col_pos].piece = NULL;
+			}
+		}
 	}
-	// Move pieces down
+}
 
-	// First unlock every piece cell to prevent interference from the drop function
+static void set_lock(Piece* piece, Grid* grid, bool lock) {
+	for (int l = 0; l < piece->height; l++) {
+		for (int m = 0; m < piece->width; m++) {
+			if (piece->shape[l * piece->width + m] && !grid->cells[l + piece->row_pos][m + piece->col_pos].locked) {
+				grid->cells[l + piece->row_pos][m + piece->col_pos].locked = lock;
+			}
+		}
+	}
+}
+
+void drop_all_pieces(Grid* grid) {
+	// Unlock all locked cells before dropping
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
 			if (grid->cells[i][j].piece) {
@@ -471,26 +492,39 @@ void clear_full_rows(Grid* grid) {
 
 	test_print_file(grid, "Before Drop", 0);
 
-	// Gather all pieces to be dropped and unmark their previous positions
 	DynamicArray* pieces_to_drop = create_dynamic_array(10, NULL);
+	int empty_row = -1;  // Flag to track if an empty row has been found
+
+	// Process from bottom to top
 	for (int i = grid->height - 1; i >= 0; i--) {
+		bool row_has_pieces = false;
+
+		// Collect all pieces in this row
 		for (int j = 0; j < grid->width; j++) {
 			if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
 				Piece* piece = grid->cells[i][j].piece;
+				row_has_pieces = true;  // Mark row as non-empty
+
 				if (!dynamic_array_contains(pieces_to_drop, piece)) {
 					add_to_dynamic_array(pieces_to_drop, piece);
 				}
-				for (int k = 0; k < piece->height; k++) {
-					for (int l = 0; l < piece->width; l++) {
-						if (piece->shape[k * piece->width + l]) {
-							grid->cells[k + piece->row_pos][l + piece->col_pos].piece = NULL;
-						}
-					}
-				}
+
+				// Clear piece references in current row before dropping
+				clear_piece_pointers(grid, piece);
 			}
 		}
 
-		// Drop the pieces
+		// If we detect an empty row for the first time, lock the row below it
+		if (!row_has_pieces && empty_row == -1 && i < grid->height - 1) {
+			empty_row = i;  // Mark this as the first empty row
+
+			// Lock the row below
+			for (int j = 0; j < grid->width; j++) {
+				grid->cells[i + 1][j].locked = true;
+			}
+		}
+
+		// Drop the collected pieces
 		for (int j = 0; j < pieces_to_drop->size; j++) {
 			Piece* piece = get_from_dynamic_array(pieces_to_drop, j);
 			drop_piece_on_grid(grid, piece, false);
@@ -498,25 +532,37 @@ void clear_full_rows(Grid* grid) {
 
 		test_print_file(grid, "After Drop", i);
 
-		// Lock the pieces in place
+		// Lock all dropped pieces
 		for (int j = 0; j < pieces_to_drop->size; j++) {
 			Piece* piece = get_from_dynamic_array(pieces_to_drop, j);
-			for (int l = 0; l < piece->height; l++) {
-				for (int m = 0; m < piece->width; m++) {
-					if (piece->shape[l * piece->width + m] && !grid->cells[l + piece->row_pos][m + piece->col_pos].locked) {
-						grid->cells[l + piece->row_pos][m + piece->col_pos].locked = true;
-					}
+			set_lock(piece, grid, true);
+		}
+
+		// If we previously marked an empty row, unlock it after dropping pieces
+		if (empty_row != -1) {
+			for (int j = 0; j < grid->width; j++) {
+				if (!grid->cells[empty_row + 1][j].piece) {
+					grid->cells[empty_row + 1][j].locked = false;
 				}
 			}
+			empty_row = -1;  // Reset the empty row flag
 		}
+		
+		// Now go over each piece and see if it can drop further
+		for (int j = 0; j < pieces_to_drop->size; j++) {
+			Piece* piece = get_from_dynamic_array(pieces_to_drop, j);
+			// Unlock the piece before dropping
+			set_lock(piece, grid, false);
+			drop_piece_on_grid(grid, piece, true);
+		}
+
 		clear_dynamic_array(pieces_to_drop);
-
 		test_print_file(grid, "After Lock", i);
-
 	}
+
 	destroy_dynamic_array(pieces_to_drop);
-	
 }
+
 
 static void remove_empty_pieces(Grid* grid) {
 	for (int i = 0; i < grid->locked_pieces->size; i++) {
