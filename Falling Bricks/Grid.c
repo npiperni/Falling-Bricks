@@ -540,7 +540,7 @@ void drop_all_pieces(Grid* grid) {
 
 			}
 			num_empty_rows++;
-			index += pieces_to_drop->size;
+			index = pieces_to_drop->size;
 		}
 	}
 
@@ -561,6 +561,12 @@ void drop_all_pieces(Grid* grid) {
 		set_lock(piece, grid, false);
 		clear_piece_pointers(grid, piece);
 		drop_piece_on_grid(grid, piece, true);
+	}
+
+	// For each piece assert that it can't drop further
+	for (int i = 0; i < grid->locked_pieces->size; i++) {
+		Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
+		SDL_assert(!validate_piece_at_position(grid, piece, piece->row_pos + 1, piece->col_pos));
 	}
 
 }
