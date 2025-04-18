@@ -9,7 +9,7 @@ Piece* create_piece(enum PieceType type) {
 		fprintf(stderr, "Error: Failed to allocate memory for Piece\n");
 		return NULL;
 	}
-
+	SDL_assert(type >= 0 && type < 7);
 	piece->row_pos = 0;
 	piece->col_pos = 0;
 	piece->type = type;

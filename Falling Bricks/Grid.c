@@ -354,26 +354,27 @@ static void test_print_file(Grid* grid, const char* label, int index) {
 // Need to do a recursive check if dropping a piece causes a new row to be full
 int check_and_clear_full_rows(Grid* grid) {
 	int cleared_rows = 0;
-	for (int i = 0; i < grid->height; i++) {
+	for (int row = 0; row < grid->height; row++) {
 		bool row_full = true;
-		for (int j = 0; j < grid->width; j++) {
-			if (!grid->cells[i][j].locked) {
+		for (int col = 0; col < grid->width; col++) {
+			if (!grid->cells[row][col].locked) {
 				row_full = false;
 				break;
 			}
 		}
 		if (row_full) {
-			test_print_file(grid, "Before Row Clearing", i);
+			test_print_file(grid, "Before Row Clearing", row);
 			DynamicArray* pieces_to_split = create_dynamic_array(10, NULL);
 			// Clear the row
-			for (int j = 0; j < grid->width; j++) {
-				if (grid->cells[i][j].piece) {
-					Piece* piece = grid->cells[i][j].piece;
+			for (int col = 0; col < grid->width; col++) {
+				if (grid->cells[row][col].piece) {
+					Piece* piece = grid->cells[row][col].piece;
 
 					// Convert global grid coordinates to local piece coordinates
-					int local_row = i - piece->row_pos;
-					int local_col = j - piece->col_pos;
+					int local_row = row - piece->row_pos;
+					int local_col = col - piece->col_pos;
 
+					// Delete the part of the piece that is in the row
 					if (local_row >= 0 && local_row < piece->height && local_col >= 0 && local_col < piece->width) {
 						piece->shape[local_row * piece->width + local_col] = false;
 					}
@@ -383,6 +384,18 @@ int check_and_clear_full_rows(Grid* grid) {
 					bool has_below = false;
 
 					// Check the entire row above
+					//if (row - 1 > 0) {
+					//	for (int i = 0; i < grid->width; i++)
+					//	{
+					//		if (grid->cells[row - 1][i].piece == piece) {
+					//			has_above = true;
+					//			break; // Stop early if any block is found above
+					//		}
+					//	}
+					//}
+
+					// Check the entire row above
+
 					if (local_row > 0) {
 						for (int c = 0; c < piece->width; c++) {
 							if (piece->shape[(local_row - 1) * piece->width + c]) {
@@ -393,6 +406,18 @@ int check_and_clear_full_rows(Grid* grid) {
 					}
 
 					// Check the entire row below
+					//if (row + 1 < grid->height - 1) {
+					//	for (int i = 0; i < grid->width; i++)
+					//	{
+					//		if (grid->cells[row + 1][i].piece == piece) {
+					//			has_below = true;
+					//			break; // Stop early if any block is found below
+					//		}
+					//	}
+					//}
+
+					// Check the entire row below
+
 					if (local_row < piece->height - 1) {
 						for (int c = 0; c < piece->width; c++) {
 							if (piece->shape[(local_row + 1) * piece->width + c]) {
@@ -406,14 +431,14 @@ int check_and_clear_full_rows(Grid* grid) {
 						add_to_dynamic_array(pieces_to_split, piece);
 					}
 
-					grid->cells[i][j].piece = NULL;
-					grid->cells[i][j].locked = false;
+					grid->cells[row][col].piece = NULL;
+					grid->cells[row][col].locked = false;
 				}
 			}
 			for (int j = 0; j < pieces_to_split->size; j++) {
 				// Piece is split! Create two new pieces
 				Piece* piece = get_from_dynamic_array(pieces_to_split, j);
-				int local_row = i - piece->row_pos;
+				int local_row = row - piece->row_pos;
 				Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
 				Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
 
@@ -451,7 +476,7 @@ int check_and_clear_full_rows(Grid* grid) {
 			}
 			destroy_dynamic_array(pieces_to_split);
 			cleared_rows++;
-			test_print_file(grid, "After Row Clearing", i);
+			test_print_file(grid, "After Row Clearing", row);
 		}
 	}
 
@@ -473,14 +498,74 @@ static void clear_piece_pointers(Grid* grid, Piece* piece) {
 static void set_lock(Piece* piece, Grid* grid, bool lock) {
 	for (int l = 0; l < piece->height; l++) {
 		for (int m = 0; m < piece->width; m++) {
-			if (piece->shape[l * piece->width + m] && !grid->cells[l + piece->row_pos][m + piece->col_pos].locked) {
+			if (piece->shape[l * piece->width + m]) {
 				grid->cells[l + piece->row_pos][m + piece->col_pos].locked = lock;
 			}
 		}
 	}
 }
 
+static bool is_row_empty(Grid* grid, int row) {
+	for (int col = 0; col < grid->width; col++) {
+		if (grid->cells[row][col].piece) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void drop_all_pieces(Grid* grid) {
+	int num_empty_rows = 0;
+	int index = 0;
+	DynamicArray* pieces_to_drop = create_dynamic_array(10, NULL);
+	for (int row = grid->height - 1; row >= 0; row--) {
+		// Gather pieces to drop
+		for (int col = 0; col < grid->width; col++) {
+			if (grid->cells[row][col].piece) {
+				Piece* piece = grid->cells[row][col].piece;
+				if (!dynamic_array_contains(pieces_to_drop, piece)) {
+					add_to_dynamic_array(pieces_to_drop, piece);
+				}
+			}
+		}
+		if (is_row_empty(grid, row) || row == 0) {
+			// Clear these pieces and set the new location to piece property
+			for (int i = index; i < pieces_to_drop->size; i++) {
+				Piece* piece = get_from_dynamic_array(pieces_to_drop, i);
+				// Drop the piece down by the number of empty rows
+				set_lock(piece, grid, false);
+				clear_piece_pointers(grid, piece);
+				piece->row_pos += num_empty_rows;
+				remove_from_dynamic_array(grid->locked_pieces, piece);
+
+			}
+			num_empty_rows++;
+			index += pieces_to_drop->size;
+		}
+	}
+
+	// Insert pieces at new location
+	for (int i = 0; i < pieces_to_drop->size; i++) {
+		Piece* piece = get_from_dynamic_array(pieces_to_drop, i);
+		insert_piece(grid, piece, true);
+	}
+
+	destroy_dynamic_array(pieces_to_drop);
+
+
+	test_print_file(grid, "After Drop", 0);
+
+	// Now go over each piece and see if it can drop further
+	for (int i = 0; i < grid->locked_pieces->size; i++) {
+		Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
+		set_lock(piece, grid, false);
+		clear_piece_pointers(grid, piece);
+		drop_piece_on_grid(grid, piece, true);
+	}
+
+}
+
+void drop_all_pieces2(Grid* grid) {
 	// Unlock all locked cells before dropping
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
@@ -496,13 +581,13 @@ void drop_all_pieces(Grid* grid) {
 	int empty_row = -1;  // Flag to track if an empty row has been found
 
 	// Process from bottom to top
-	for (int i = grid->height - 1; i >= 0; i--) {
+	for (int row = grid->height - 1; row >= 0; row--) {
 		bool row_has_pieces = false;
 
 		// Collect all pieces in this row
-		for (int j = 0; j < grid->width; j++) {
-			if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
-				Piece* piece = grid->cells[i][j].piece;
+		for (int col = 0; col < grid->width; col++) {
+			if (grid->cells[row][col].piece && !grid->cells[row][col].locked) {
+				Piece* piece = grid->cells[row][col].piece;
 				row_has_pieces = true;  // Mark row as non-empty
 
 				if (!dynamic_array_contains(pieces_to_drop, piece)) {
@@ -515,12 +600,12 @@ void drop_all_pieces(Grid* grid) {
 		}
 
 		// If we detect an empty row for the first time, lock the row below it
-		if (!row_has_pieces && empty_row == -1 && i < grid->height - 1) {
-			empty_row = i;  // Mark this as the first empty row
+		if (!row_has_pieces && empty_row == -1 && row < grid->height - 1) {
+			empty_row = row;  // Mark this as the first empty row
 
 			// Lock the row below
 			for (int j = 0; j < grid->width; j++) {
-				grid->cells[i + 1][j].locked = true;
+				grid->cells[row + 1][j].locked = true;
 			}
 		}
 
@@ -530,7 +615,7 @@ void drop_all_pieces(Grid* grid) {
 			drop_piece_on_grid(grid, piece, false);
 		}
 
-		test_print_file(grid, "After Drop", i);
+		test_print_file(grid, "After Drop", row);
 
 		// Lock all dropped pieces
 		for (int j = 0; j < pieces_to_drop->size; j++) {
@@ -557,7 +642,7 @@ void drop_all_pieces(Grid* grid) {
 		}
 
 		clear_dynamic_array(pieces_to_drop);
-		test_print_file(grid, "After Lock", i);
+		test_print_file(grid, "After Lock", row);
 	}
 
 	destroy_dynamic_array(pieces_to_drop);
