@@ -354,17 +354,20 @@ void render(SDL_Renderer* renderer) {
 	float scale_factor = MIN((float)window_width / WINDOW_WIDTH, (float)window_height / WINDOW_HEIGHT);
 
 	if (game.current_state == GAME_STATE_MENU) {
+		title_menu->scale_factor = scale_factor;
 		draw_title_menu(title_menu, renderer);
 	}
 	else if (game.current_state == GAME_OVER_MENU) {
+		game_over_menu->scale_factor = scale_factor;
 		draw_game_over_menu(game_over_menu, renderer);
 	}
 	else {
 		int cell_width = 32 * scale_factor;
-		int board_x = (float)window_width / 2 - (float)cell_width * BOARD_WIDTH / 2;
+		int board_x = (float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2;
+		board_x *= scale_factor;
 		int board_y = 50;
 		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
-		draw_grid(queue_grid, 50 + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
+		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
 	}
 
 	

@@ -5,10 +5,12 @@
 
 struct TitleMenu {
 	Button* buttons[4];
+	float scale_factor;
 };
 
 struct GameOverMenu {
 	Button* buttons[2];
+	float scale_factor;
 };
 
 struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* button_font);
