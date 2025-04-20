@@ -1,0 +1,52 @@
+#include "Button.h"
+#include <SDL.h>
+#include <stdio.h>
+
+static void handle_hover(Button* button) {
+	int mouse_x, mouse_y;
+	SDL_GetMouseState(&mouse_x, &mouse_y);
+	if (mouse_x >= button->rect.x && mouse_x <= button->rect.x + button->rect.w &&
+		mouse_y >= button->rect.y && mouse_y <= button->rect.y + button->rect.h) {
+		button->hovered = true;
+	}
+	else {
+		button->hovered = false;
+	}
+}
+
+Button* create_button(int x, int y, int width, int height, SDL_Color color, ButtonCallback on_click) {
+	Button* button = malloc(sizeof(Button));
+	if (!button) {
+		fprintf(stderr, "Error: Failed to allocate memory for Button\n");
+		return NULL;
+	}
+	button->rect.x = x;
+	button->rect.y = y;
+	button->rect.w = width;
+	button->rect.h = height;
+	button->color = color;
+	button->hovered = false;
+	button->on_click = on_click;
+	return button;
+}
+
+void destroy_button(Button* button) {
+	free(button);
+}
+
+void draw_button(Button* button, SDL_Renderer* renderer) {
+	SDL_SetRenderDrawColor(renderer, button->color.r, button->color.g, button->color.b, button->color.a);
+	SDL_RenderFillRect(renderer, &button->rect);
+	if (button->hovered) {
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		SDL_RenderDrawRect(renderer, &button->rect);
+	}
+}
+
+void handle_button_event(Button* button, SDL_Event event) {
+	handle_hover(button);
+
+	if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && button->hovered) {
+		button->on_click();
+	}
+}

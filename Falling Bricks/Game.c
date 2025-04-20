@@ -7,6 +7,8 @@
 #include "Grid.h"
 #include "Piece.h"
 #include "Queue.h"
+#include "DynamicArray.h"
+#include "Menu.h"
 #include "Game.h"
 
 int last_frame_time = 0;
@@ -26,6 +28,28 @@ Queue* next_pieces = NULL;
 
 SDL_Renderer* debug_renderer = NULL;
 
+struct TitleMenu* title_menu = NULL;
+struct GameOverMenu* game_over_menu = NULL;
+
+typedef enum {
+	GAME_STATE_MENU,
+	GAME_STATE_PLAYING
+	//GAME_STATE_PAUSED,
+	//GAME_STATE_QUIT
+} GameState;
+
+typedef enum {
+	FOURTY_LINES,
+	BLITZ,
+	ENDLESS
+} GameMode;
+
+struct Game {
+	GameState current_state;
+	GameMode current_mode;
+} game = { 0 };
+
+
 struct Flags {
 	bool move_player_down;
 	bool move_player_left;
@@ -34,6 +58,46 @@ struct Flags {
 	bool drop_player;
 	bool pause;
 } flags = { 0 };
+
+static void screenshot_debug() {
+	char buffer[100];
+	sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
+	SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+	SDL_SaveBMP(sshot, buffer);
+	SDL_FreeSurface(sshot);
+}
+
+void start_game() {
+	game.current_state = GAME_STATE_PLAYING;
+	round_active = true;
+	last_drop_time = SDL_GetTicks();
+	player_piece = create_piece(T);
+}
+
+void start_fourty_lines() {
+	game.current_mode = FOURTY_LINES;
+	start_game();
+}
+
+void start_blitz() {
+	game.current_mode = BLITZ;
+	start_game();
+}
+
+void start_endless() {
+	game.current_mode = ENDLESS;
+	start_game();
+}
+
+void main_menu() {
+	game.current_state = GAME_STATE_MENU;
+	round_active = false;
+}
+
+void send_quit() {
+	SDL_PushEvent(&(SDL_Event) { .type = SDL_QUIT });
+}
 
 static bool move_player_left() {
 	if (validate_piece_at_position(game_board, player_piece, player_piece->row_pos, player_piece->col_pos - 1)) {
@@ -66,8 +130,19 @@ static Piece* create_random_piece() {
 
 bool setup() {
 
+	title_menu = create_title_menu((ButtonCallback[]) {
+		start_fourty_lines,
+		start_blitz,
+		start_endless,
+		send_quit
+	});
+
+	game_over_menu = create_game_over_menu((ButtonCallback[]) {
+		main_menu,
+		send_quit
+	});
+
 	game_board = create_grid(10, 20, true);
-	player_piece = create_piece(T);
 
 	queue_grid = create_grid(6, 19, true);
 	queue_grid->show_grid_lines = false;
@@ -82,13 +157,11 @@ bool setup() {
 		add_piece_to_grid(queue_grid, new_piece, true, false);
 	}
 
-	if (!player_piece || !game_board)
+	if (!game_board || !title_menu || !game_over_menu)
 	{
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
 	}
-
-	round_active = true;
 
 	return true;
 }
@@ -97,19 +170,27 @@ void cleanup() {
 	destroy_piece(player_piece);
 	destroy_grid(game_board);
 	destroy_queue(next_pieces);
+	destroy_title_menu(title_menu);
+	destroy_game_over_menu(game_over_menu);
 }
 
 void process_input(bool* running) {
 	SDL_Event event;
 	SDL_PollEvent(&event);
 
-	int key = 0;
-	switch (event.type) {
-	case SDL_QUIT:
+	if (event.type == SDL_QUIT) {
 		*running = false;
-		break;
-	case SDL_KEYDOWN:
-		key = event.key.keysym.sym;
+		return;
+	}
+
+	if (game.current_state == GAME_STATE_MENU) {
+		handle_title_menu_events(title_menu, event);
+		//handle_game_over_menu_events(game_over_menu, event);
+		return;
+	}
+
+	if (event.type == SDL_KEYDOWN) {
+		int key = event.key.keysym.sym;
 		if (key == SDLK_ESCAPE) {
 			*running = false;
 		}
@@ -131,16 +212,6 @@ void process_input(bool* running) {
 		else if (key == SDLK_SPACE) {
 			flags.drop_player = true;
 		}
-		break;
-	case SDL_MOUSEMOTION:
-		//printf("Mouse moved.\n");
-		break;
-	case SDL_MOUSEBUTTONDOWN:
-		if (event.button.button == SDL_BUTTON_LEFT)
-		{
-			printf("Clicked mouse button 1\n");
-		}
-		break;
 	}
 }
 
@@ -155,6 +226,10 @@ void update() {
 
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
 	last_frame_time = SDL_GetTicks();
+
+	if (game.current_state == GAME_STATE_MENU) {
+		return;
+	}
 
 	if (flags.pause) {
 		return;
@@ -207,12 +282,6 @@ void update() {
 			drop = true;
 			lock_piece = true;
 			flags.drop_player = false;
-			char buffer[100];
-			sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
-			SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-			SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
-			SDL_SaveBMP(sshot, buffer);
-			SDL_FreeSurface(sshot);
 		}
 		if (flags.rotate_player) {
 			Piece* rotated_piece = try_rotate_piece(game_board, player_piece);
@@ -229,14 +298,18 @@ void update() {
 
 		if (!piece_added) {
 			round_active = false;
+			destroy_piece(player_piece);
+			player_piece = NULL;
 			printf("Game Over\n");
+			game.current_state = GAME_STATE_MENU;
+			return;
 		}
 
 		if (lock_piece) {
 			destroy_piece(player_piece);
 			player_piece = dequeue(next_pieces);
 			player_piece->row_pos = 0;
-			player_piece->col_pos = 0;
+			player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
 
 			enqueue(next_pieces, create_random_piece());
 			// Update queue grid
@@ -275,9 +348,17 @@ void render(SDL_Renderer* renderer) {
 	// Draw grid
 	SDL_Color cell_color = { 0, 177, 0, 255 };
 
+	if (game.current_state == GAME_STATE_MENU) {
+		draw_title_menu(title_menu, renderer);
+		//draw_game_over_menu(game_over_menu, renderer);
 
-	draw_grid(game_board, 50, 50, 32, true, renderer);
-	draw_grid(queue_grid, 50 + game_board->width * 32 + 50, 50, 32, true, renderer);
+	}
+	//else {
+		draw_grid(game_board, 50, 50, 32, true, renderer);
+		draw_grid(queue_grid, 50 + game_board->width * 32 + 50, 50, 32, true, renderer);
+	//}
+
+	
 
 	SDL_RenderPresent(renderer);
 }
