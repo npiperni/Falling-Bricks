@@ -47,9 +47,11 @@ Grid* create_grid(int width, int height, bool show_lines) {
 }
 
 void destroy_grid(Grid* grid) {
-	deallocate_cells(grid->cells, grid->height);
-	destroy_dynamic_array(grid->locked_pieces);
-	free(grid);
+	if (grid) {
+		deallocate_cells(grid->cells, grid->height);
+		destroy_dynamic_array(grid->locked_pieces);
+		free(grid);
+	}
 }
 
 bool validate_piece_at_position(Grid* grid, Piece* piece, int row, int col) {
@@ -363,7 +365,6 @@ int check_and_clear_full_rows(Grid* grid) {
 			}
 		}
 		if (row_full) {
-			test_print_file(grid, "Before Row Clearing", row);
 			DynamicArray* pieces_to_split = create_dynamic_array(10, NULL);
 			// Clear the row
 			for (int col = 0; col < grid->width; col++) {
@@ -476,7 +477,6 @@ int check_and_clear_full_rows(Grid* grid) {
 			}
 			destroy_dynamic_array(pieces_to_split);
 			cleared_rows++;
-			test_print_file(grid, "After Row Clearing", row);
 		}
 	}
 
@@ -553,8 +553,6 @@ void drop_all_pieces(Grid* grid) {
 	destroy_dynamic_array(pieces_to_drop);
 
 
-	test_print_file(grid, "After Drop", 0);
-
 	// Now go over each piece and see if it can drop further
 	for (int i = 0; i < grid->locked_pieces->size; i++) {
 		Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
@@ -579,7 +577,7 @@ static void remove_empty_pieces(Grid* grid) {
 		if (is_piece_empty(piece)) {
 			remove_from_dynamic_array(grid->locked_pieces, piece);
 			destroy_piece(piece);
-			printf("Removed empty piece\n");
+			//printf("Removed empty piece\n");
 			i--; // Adjust index since we removed an item
 		}
 	}

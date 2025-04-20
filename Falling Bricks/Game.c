@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,8 @@
 #include "DynamicArray.h"
 #include "Menu.h"
 #include "Game.h"
+
+extern TTF_Font* font;
 
 int last_frame_time = 0;
 
@@ -59,6 +62,11 @@ struct Flags {
 	bool pause;
 } flags = { 0 };
 
+static Piece* create_random_piece() {
+	int random_piece = rand() % 7;
+	return create_piece(random_piece);
+}
+
 static void screenshot_debug() {
 	char buffer[100];
 	sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
@@ -72,7 +80,9 @@ void start_game() {
 	game.current_state = GAME_STATE_PLAYING;
 	round_active = true;
 	last_drop_time = SDL_GetTicks();
-	player_piece = create_piece(T);
+	player_piece = create_random_piece();
+	player_piece->row_pos = 0;
+	player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
 }
 
 void start_fourty_lines() {
@@ -123,11 +133,6 @@ static bool move_player_down() {
 	return false;
 }
 
-static Piece* create_random_piece() {
-	int random_piece = rand() % 7;
-	return create_piece(random_piece);
-}
-
 bool setup() {
 
 	title_menu = create_title_menu((ButtonCallback[]) {
@@ -135,12 +140,12 @@ bool setup() {
 		start_blitz,
 		start_endless,
 		send_quit
-	});
+	}, font);
 
 	game_over_menu = create_game_over_menu((ButtonCallback[]) {
 		main_menu,
 		send_quit
-	});
+	}, font);
 
 	game_board = create_grid(10, 20, true);
 
@@ -162,7 +167,7 @@ bool setup() {
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
 	}
-
+	
 	return true;
 }
 

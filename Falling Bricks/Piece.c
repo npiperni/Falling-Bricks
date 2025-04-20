@@ -192,8 +192,10 @@ Piece* copy_piece_region(Piece* original, int start_row, int start_col, int new_
 }
 
 void destroy_piece(Piece* piece) {
-	free(piece->shape);
-	free(piece);
+	if (piece) {
+		free(piece->shape);
+		free(piece);
+	}
 }
 
 static bool calloc_failed(bool* shape)

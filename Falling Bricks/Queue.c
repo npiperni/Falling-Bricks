@@ -25,7 +25,7 @@ void enqueue(Queue* queue, void* data) {
 }
 
 void* dequeue(Queue* queue) {
-    if (!queue->front) return NULL;
+    if (!queue || !queue->front) return NULL;
 
     Node* temp = queue->front;
     void* data = temp->data;
@@ -38,6 +38,7 @@ void* dequeue(Queue* queue) {
 }
 
 void clear_queue(Queue* queue) {
+	if (!queue) return;
     while (queue->front) {
         void* data = dequeue(queue);
         if (queue->data_destroyer) {
@@ -49,6 +50,7 @@ void clear_queue(Queue* queue) {
 }
 
 void destroy_queue(Queue* queue) {
+    if (!queue) return;
 	clear_queue(queue);
     free(queue);
 }

@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <SDL.h>
+#include <SDL_ttf.h>
 
 typedef void (*ButtonCallback)(void);
 
@@ -10,9 +11,11 @@ typedef struct {
 	SDL_Color color;
 	bool hovered;
 	ButtonCallback on_click;
+	char* label;
+	SDL_Texture* texture;
 } Button;
 
-Button* create_button(int x, int y, int width, int height, SDL_Color color, ButtonCallback on_click);
+Button* create_button(int x, int y, int width, int height, SDL_Color color, ButtonCallback on_click, char* label, TTF_Font* font);
 
 void destroy_button(Button* button);
 
