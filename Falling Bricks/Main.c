@@ -45,7 +45,7 @@ bool load_fonts() {
 		fprintf(stderr, "Error initializing TTF: %s\n", TTF_GetError());
 		return false;
 	}
-	font = TTF_OpenFont("StarlightRegular-7m9E.ttf", 24);
+	font = TTF_OpenFont("AmericanCaptain-MdEY.otf", 72);
 	if (!font) {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
 		return false;

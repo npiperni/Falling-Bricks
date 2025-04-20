@@ -12,13 +12,14 @@
 #include "Menu.h"
 #include "Game.h"
 
+#define BOARD_WIDTH 10
+#define BOARD_HEIGHT 20
+
 extern TTF_Font* font;
 
 int last_frame_time = 0;
 
 int last_drop_time = 0;
-
-float scale_factor = 1;
 
 bool round_active = false;
 bool dropping_pieces = false;
@@ -36,9 +37,8 @@ struct GameOverMenu* game_over_menu = NULL;
 
 typedef enum {
 	GAME_STATE_MENU,
+	GAME_OVER_MENU,
 	GAME_STATE_PLAYING
-	//GAME_STATE_PAUSED,
-	//GAME_STATE_QUIT
 } GameState;
 
 typedef enum {
@@ -147,7 +147,7 @@ bool setup() {
 		send_quit
 	}, font);
 
-	game_board = create_grid(10, 20, true);
+	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true);
 
 	queue_grid = create_grid(6, 19, true);
 	queue_grid->show_grid_lines = false;
@@ -190,7 +190,10 @@ void process_input(bool* running) {
 
 	if (game.current_state == GAME_STATE_MENU) {
 		handle_title_menu_events(title_menu, event);
-		//handle_game_over_menu_events(game_over_menu, event);
+		return;
+	}
+	if (game.current_state == GAME_OVER_MENU) {
+		handle_game_over_menu_events(game_over_menu, event);
 		return;
 	}
 
@@ -232,17 +235,13 @@ void update() {
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
 	last_frame_time = SDL_GetTicks();
 
-	if (game.current_state == GAME_STATE_MENU) {
+	if (game.current_state != GAME_STATE_PLAYING) {
 		return;
 	}
 
 	if (flags.pause) {
 		return;
 	}
-
-	//ball.x += 70 * delta_time;
-	//ball.y += 50 * delta_time;
-	//printf("%d\n", SDL_GetTicks());
 
 	//int current_width, current_height;
 	//SDL_GetWindowSize(window, &current_width, &current_height);
@@ -263,6 +262,7 @@ void update() {
 			if (check_and_clear_full_rows(game_board) == 0) {
 				dropping_pieces = false;
 			}
+			last_drop_time = SDL_GetTicks();
 			return;
 		}
 		if (SDL_GetTicks() - last_drop_time >= 1000) {
@@ -306,7 +306,7 @@ void update() {
 			destroy_piece(player_piece);
 			player_piece = NULL;
 			printf("Game Over\n");
-			game.current_state = GAME_STATE_MENU;
+			game.current_state = GAME_OVER_MENU;
 			return;
 		}
 
@@ -333,7 +333,6 @@ void update() {
 				dropping_pieces = true;
 				return;
 			}
-
 			
 		}
 	}
@@ -345,23 +344,28 @@ void render(SDL_Renderer* renderer) {
 	SDL_RenderClear(renderer);
 
 	//SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
-	//SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
-	//SDL_RenderDrawRect(renderer, &my_rect);
+
 
 	//SDL_Surface* screen = SDL_GetWindowSurface(window);
 
-	// Draw grid
-	SDL_Color cell_color = { 0, 177, 0, 255 };
+	SDL_Window* window = SDL_GetWindowFromID(1);
+	int window_width, window_height;
+	SDL_GetWindowSize(window, &window_width, &window_height);
+	float scale_factor = MIN((float)window_width / WINDOW_WIDTH, (float)window_height / WINDOW_HEIGHT);
 
 	if (game.current_state == GAME_STATE_MENU) {
 		draw_title_menu(title_menu, renderer);
-		//draw_game_over_menu(game_over_menu, renderer);
-
 	}
-	//else {
-		draw_grid(game_board, 50, 50, 32, true, renderer);
-		draw_grid(queue_grid, 50 + game_board->width * 32 + 50, 50, 32, true, renderer);
-	//}
+	else if (game.current_state == GAME_OVER_MENU) {
+		draw_game_over_menu(game_over_menu, renderer);
+	}
+	else {
+		int cell_width = 32 * scale_factor;
+		int board_x = (float)window_width / 2 - (float)cell_width * BOARD_WIDTH / 2;
+		int board_y = 50;
+		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
+		draw_grid(queue_grid, 50 + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
+	}
 
 	
 

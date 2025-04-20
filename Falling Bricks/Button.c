@@ -43,7 +43,8 @@ void destroy_button(Button* button) {
 void draw_button(Button* button, SDL_Renderer* renderer) {
 	SDL_SetRenderDrawColor(renderer, button->color.r, button->color.g, button->color.b, button->color.a);
 	SDL_RenderFillRect(renderer, &button->rect);
-	SDL_RenderCopy(renderer, button->texture, NULL, &button->rect);
+	SDL_Rect text_rect = { button->rect.x + button->rect.w / 8, button->rect.y + button->rect.h / 6, button->rect.w * 3 / 4, button->rect.h * 3 / 4};
+	SDL_RenderCopy(renderer, button->texture, NULL, &text_rect);
 	if (button->hovered) {
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 		SDL_RenderDrawRect(renderer, &button->rect);
