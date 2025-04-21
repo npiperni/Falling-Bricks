@@ -2,10 +2,14 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <time.h>
 
 #include "Constants.h"
 #include "Game.h"
+
+TTF_Font* button_font = NULL;
+TTF_Font* title_font = NULL;
 
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -37,6 +41,35 @@ bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 	return true;
 }
 
+bool load_fonts() {
+	if (TTF_Init() == -1) {
+		fprintf(stderr, "Error initializing TTF: %s\n", TTF_GetError());
+		return false;
+	}
+	button_font = TTF_OpenFont("AmericanCaptain-MdEY.otf", 72);
+	if (!button_font) {
+		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+		return false;
+	}
+	title_font = TTF_OpenFont("BubblePixel7-do9x.ttf", 128);
+	if (!title_font) {
+		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+		return false;
+	}
+}
+
+void free_fonts() {
+	if (button_font) {
+		TTF_CloseFont(button_font);
+		button_font = NULL;
+	}
+	if (title_font) {
+		TTF_CloseFont(title_font);
+		title_font = NULL;
+	}
+	TTF_Quit();
+}
+
 void destroy_window(SDL_Window* window, SDL_Renderer* renderer) {
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -45,11 +78,11 @@ void destroy_window(SDL_Window* window, SDL_Renderer* renderer) {
 
 int main(int argc, char* args[]) {
 	srand(time(NULL));
-	
+
 	SDL_Window* window = NULL;
 	SDL_Renderer* renderer = NULL;
 
-	bool game_is_running = init_window(&window, &renderer) && setup();
+	bool game_is_running = init_window(&window, &renderer) && load_fonts() && setup();
 
 	while (game_is_running) {
 		process_input(&game_is_running);
@@ -57,7 +90,11 @@ int main(int argc, char* args[]) {
 		render(renderer);
 	}
 
+	cleanup();
+
 	destroy_window(window, renderer);
+
+	free_fonts();
 
 	return 0;
 }

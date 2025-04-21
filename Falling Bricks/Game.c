@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,13 +8,19 @@
 #include "Grid.h"
 #include "Piece.h"
 #include "Queue.h"
+#include "DynamicArray.h"
+#include "Menu.h"
 #include "Game.h"
+
+#define BOARD_WIDTH 10
+#define BOARD_HEIGHT 20
+
+extern TTF_Font* button_font;
+extern TTF_Font* title_font;
 
 int last_frame_time = 0;
 
 int last_drop_time = 0;
-
-float scale_factor = 1;
 
 bool round_active = false;
 bool dropping_pieces = false;
@@ -26,6 +33,27 @@ Queue* next_pieces = NULL;
 
 SDL_Renderer* debug_renderer = NULL;
 
+struct TitleMenu* title_menu = NULL;
+struct GameOverMenu* game_over_menu = NULL;
+
+typedef enum {
+	GAME_STATE_MENU,
+	GAME_OVER_MENU,
+	GAME_STATE_PLAYING
+} GameState;
+
+typedef enum {
+	FOURTY_LINES,
+	BLITZ,
+	ENDLESS
+} GameMode;
+
+struct Game {
+	GameState current_state;
+	GameMode current_mode;
+} game = { 0 };
+
+
 struct Flags {
 	bool move_player_down;
 	bool move_player_left;
@@ -34,6 +62,53 @@ struct Flags {
 	bool drop_player;
 	bool pause;
 } flags = { 0 };
+
+static Piece* create_random_piece() {
+	int random_piece = rand() % 7;
+	return create_piece(random_piece);
+}
+
+static void screenshot_debug() {
+	char buffer[100];
+	sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
+	SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+	SDL_SaveBMP(sshot, buffer);
+	SDL_FreeSurface(sshot);
+}
+
+void start_game() {
+	game.current_state = GAME_STATE_PLAYING;
+	round_active = true;
+	last_drop_time = SDL_GetTicks();
+	player_piece = create_random_piece();
+	player_piece->row_pos = 0;
+	player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
+}
+
+void start_fourty_lines() {
+	game.current_mode = FOURTY_LINES;
+	start_game();
+}
+
+void start_blitz() {
+	game.current_mode = BLITZ;
+	start_game();
+}
+
+void start_endless() {
+	game.current_mode = ENDLESS;
+	start_game();
+}
+
+void main_menu() {
+	game.current_state = GAME_STATE_MENU;
+	round_active = false;
+}
+
+void send_quit() {
+	SDL_PushEvent(&(SDL_Event) { .type = SDL_QUIT });
+}
 
 static bool move_player_left() {
 	if (validate_piece_at_position(game_board, player_piece, player_piece->row_pos, player_piece->col_pos - 1)) {
@@ -59,15 +134,21 @@ static bool move_player_down() {
 	return false;
 }
 
-static Piece* create_random_piece() {
-	int random_piece = rand() % 7;
-	return create_piece(random_piece);
-}
-
 bool setup() {
 
-	game_board = create_grid(10, 20, true);
-	player_piece = create_piece(T);
+	title_menu = create_title_menu((ButtonCallback[]) {
+		start_fourty_lines,
+		start_blitz,
+		start_endless,
+		send_quit
+	}, title_font, button_font);
+
+	game_over_menu = create_game_over_menu((ButtonCallback[]) {
+		main_menu,
+		send_quit
+	}, button_font);
+
+	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true);
 
 	queue_grid = create_grid(6, 19, true);
 	queue_grid->show_grid_lines = false;
@@ -82,14 +163,12 @@ bool setup() {
 		add_piece_to_grid(queue_grid, new_piece, true, false);
 	}
 
-	if (!player_piece || !game_board)
+	if (!game_board || !title_menu || !game_over_menu)
 	{
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
 	}
-
-	round_active = true;
-
+	
 	return true;
 }
 
@@ -97,19 +176,30 @@ void cleanup() {
 	destroy_piece(player_piece);
 	destroy_grid(game_board);
 	destroy_queue(next_pieces);
+	destroy_title_menu(title_menu);
+	destroy_game_over_menu(game_over_menu);
 }
 
 void process_input(bool* running) {
 	SDL_Event event;
 	SDL_PollEvent(&event);
 
-	int key = 0;
-	switch (event.type) {
-	case SDL_QUIT:
+	if (event.type == SDL_QUIT) {
 		*running = false;
-		break;
-	case SDL_KEYDOWN:
-		key = event.key.keysym.sym;
+		return;
+	}
+
+	if (game.current_state == GAME_STATE_MENU) {
+		handle_title_menu_events(title_menu, event);
+		return;
+	}
+	if (game.current_state == GAME_OVER_MENU) {
+		handle_game_over_menu_events(game_over_menu, event);
+		return;
+	}
+
+	if (event.type == SDL_KEYDOWN) {
+		int key = event.key.keysym.sym;
 		if (key == SDLK_ESCAPE) {
 			*running = false;
 		}
@@ -131,16 +221,6 @@ void process_input(bool* running) {
 		else if (key == SDLK_SPACE) {
 			flags.drop_player = true;
 		}
-		break;
-	case SDL_MOUSEMOTION:
-		//printf("Mouse moved.\n");
-		break;
-	case SDL_MOUSEBUTTONDOWN:
-		if (event.button.button == SDL_BUTTON_LEFT)
-		{
-			printf("Clicked mouse button 1\n");
-		}
-		break;
 	}
 }
 
@@ -156,13 +236,13 @@ void update() {
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
 	last_frame_time = SDL_GetTicks();
 
-	if (flags.pause) {
+	if (game.current_state != GAME_STATE_PLAYING) {
 		return;
 	}
 
-	//ball.x += 70 * delta_time;
-	//ball.y += 50 * delta_time;
-	//printf("%d\n", SDL_GetTicks());
+	if (flags.pause) {
+		return;
+	}
 
 	//int current_width, current_height;
 	//SDL_GetWindowSize(window, &current_width, &current_height);
@@ -183,6 +263,7 @@ void update() {
 			if (check_and_clear_full_rows(game_board) == 0) {
 				dropping_pieces = false;
 			}
+			last_drop_time = SDL_GetTicks();
 			return;
 		}
 		if (SDL_GetTicks() - last_drop_time >= 1000) {
@@ -207,12 +288,6 @@ void update() {
 			drop = true;
 			lock_piece = true;
 			flags.drop_player = false;
-			char buffer[100];
-			sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
-			SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-			SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
-			SDL_SaveBMP(sshot, buffer);
-			SDL_FreeSurface(sshot);
 		}
 		if (flags.rotate_player) {
 			Piece* rotated_piece = try_rotate_piece(game_board, player_piece);
@@ -229,14 +304,18 @@ void update() {
 
 		if (!piece_added) {
 			round_active = false;
+			destroy_piece(player_piece);
+			player_piece = NULL;
 			printf("Game Over\n");
+			game.current_state = GAME_OVER_MENU;
+			return;
 		}
 
 		if (lock_piece) {
 			destroy_piece(player_piece);
 			player_piece = dequeue(next_pieces);
 			player_piece->row_pos = 0;
-			player_piece->col_pos = 0;
+			player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
 
 			enqueue(next_pieces, create_random_piece());
 			// Update queue grid
@@ -255,7 +334,6 @@ void update() {
 				dropping_pieces = true;
 				return;
 			}
-
 			
 		}
 	}
@@ -266,18 +344,29 @@ void render(SDL_Renderer* renderer) {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
-	//SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
-	//SDL_SetRenderDrawColor(renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
-	//SDL_RenderDrawRect(renderer, &my_rect);
+	SDL_Window* window = SDL_GetWindowFromID(1);
+	int window_width, window_height;
+	SDL_GetWindowSize(window, &window_width, &window_height);
+	float scale_factor = MIN((float)window_width / WINDOW_WIDTH, (float)window_height / WINDOW_HEIGHT);
 
-	//SDL_Surface* screen = SDL_GetWindowSurface(window);
-
-	// Draw grid
-	SDL_Color cell_color = { 0, 177, 0, 255 };
-
-
-	draw_grid(game_board, 50, 50, 32, true, renderer);
-	draw_grid(queue_grid, 50 + game_board->width * 32 + 50, 50, 32, true, renderer);
+	if (game.current_state == GAME_STATE_MENU) {
+		title_menu->scale_factor = scale_factor;
+		draw_title_menu(title_menu, renderer);
+	}
+	else if (game.current_state == GAME_OVER_MENU) {
+		game_over_menu->scale_factor = scale_factor;
+		draw_game_over_menu(game_over_menu, renderer);
+	}
+	
+	// Still want to show the game board at end of game
+	if (game.current_state != GAME_STATE_MENU) {
+		int cell_width = 32 * scale_factor;
+		int board_x = (float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2;
+		board_x *= scale_factor;
+		int board_y = 50;
+		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
+		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
+	}
 
 	SDL_RenderPresent(renderer);
 }
