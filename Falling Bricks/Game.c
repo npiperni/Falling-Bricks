@@ -15,7 +15,8 @@
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 20
 
-extern TTF_Font* font;
+extern TTF_Font* button_font;
+extern TTF_Font* title_font;
 
 int last_frame_time = 0;
 
@@ -140,12 +141,12 @@ bool setup() {
 		start_blitz,
 		start_endless,
 		send_quit
-	}, font);
+	}, title_font, button_font);
 
 	game_over_menu = create_game_over_menu((ButtonCallback[]) {
 		main_menu,
 		send_quit
-	}, font);
+	}, button_font);
 
 	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true);
 
@@ -343,11 +344,6 @@ void render(SDL_Renderer* renderer) {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
-	//SDL_Rect my_rect = { 600 * scale_factor, 300 * scale_factor, 100 * scale_factor, 100 * scale_factor };
-
-
-	//SDL_Surface* screen = SDL_GetWindowSurface(window);
-
 	SDL_Window* window = SDL_GetWindowFromID(1);
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
@@ -361,7 +357,9 @@ void render(SDL_Renderer* renderer) {
 		game_over_menu->scale_factor = scale_factor;
 		draw_game_over_menu(game_over_menu, renderer);
 	}
-	else {
+	
+	// Still want to show the game board at end of game
+	if (game.current_state != GAME_STATE_MENU) {
 		int cell_width = 32 * scale_factor;
 		int board_x = (float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2;
 		board_x *= scale_factor;
@@ -369,8 +367,6 @@ void render(SDL_Renderer* renderer) {
 		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
 		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
 	}
-
-	
 
 	SDL_RenderPresent(renderer);
 }

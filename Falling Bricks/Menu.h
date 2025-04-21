@@ -5,6 +5,7 @@
 
 struct TitleMenu {
 	Button* buttons[4];
+	SDL_Texture* title_texture;
 	float scale_factor;
 };
 
@@ -13,7 +14,7 @@ struct GameOverMenu {
 	float scale_factor;
 };
 
-struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* button_font);
+struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* title_font, TTF_Font* button_font);
 
 void draw_title_menu(struct TitleMenu* menu, SDL_Renderer* renderer);
 

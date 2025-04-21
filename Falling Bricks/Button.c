@@ -49,6 +49,10 @@ Button* create_button(int x, int y, int width, int height, SDL_Color color, Butt
 }
 
 void destroy_button(Button* button) {
+	if (!button) return;
+	if (button->texture) {
+		SDL_DestroyTexture(button->texture);
+	}
 	free(button);
 }
 

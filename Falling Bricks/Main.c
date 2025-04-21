@@ -8,7 +8,8 @@
 #include "Constants.h"
 #include "Game.h"
 
-TTF_Font* font = NULL;
+TTF_Font* button_font = NULL;
+TTF_Font* title_font = NULL;
 
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -45,17 +46,26 @@ bool load_fonts() {
 		fprintf(stderr, "Error initializing TTF: %s\n", TTF_GetError());
 		return false;
 	}
-	font = TTF_OpenFont("AmericanCaptain-MdEY.otf", 72);
-	if (!font) {
+	button_font = TTF_OpenFont("AmericanCaptain-MdEY.otf", 72);
+	if (!button_font) {
+		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+		return false;
+	}
+	title_font = TTF_OpenFont("BubblePixel7-do9x.ttf", 128);
+	if (!title_font) {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
 		return false;
 	}
 }
 
 void free_fonts() {
-	if (font) {
-		TTF_CloseFont(font);
-		font = NULL;
+	if (button_font) {
+		TTF_CloseFont(button_font);
+		button_font = NULL;
+	}
+	if (title_font) {
+		TTF_CloseFont(title_font);
+		title_font = NULL;
 	}
 	TTF_Quit();
 }
