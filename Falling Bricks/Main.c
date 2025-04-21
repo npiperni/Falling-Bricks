@@ -10,6 +10,7 @@
 
 TTF_Font* button_font = NULL;
 TTF_Font* title_font = NULL;
+TTF_Font* ui_font = NULL;
 
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -56,6 +57,11 @@ bool load_fonts() {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
 		return false;
 	}
+	ui_font = TTF_OpenFont("Polt-AABM.otf", 48);
+	if (!ui_font) {
+		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+		return false;
+	}
 }
 
 void free_fonts() {
@@ -66,6 +72,10 @@ void free_fonts() {
 	if (title_font) {
 		TTF_CloseFont(title_font);
 		title_font = NULL;
+	}
+	if (ui_font) {
+		TTF_CloseFont(ui_font);
+		ui_font = NULL;
 	}
 	TTF_Quit();
 }

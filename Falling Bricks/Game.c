@@ -17,6 +17,7 @@
 
 extern TTF_Font* button_font;
 extern TTF_Font* title_font;
+extern TTF_Font* ui_font;
 
 int last_frame_time = 0;
 
@@ -51,6 +52,10 @@ typedef enum {
 struct Game {
 	GameState current_state;
 	GameMode current_mode;
+	int score;
+	int lines_cleared;
+	int level;
+	int start_time;
 } game = { 0 };
 
 
@@ -78,12 +83,16 @@ static void screenshot_debug() {
 }
 
 void start_game() {
+	game.level = 1;
+	game.score = 0;
+	game.lines_cleared = 0;
 	game.current_state = GAME_STATE_PLAYING;
 	round_active = true;
 	last_drop_time = SDL_GetTicks();
 	player_piece = create_random_piece();
 	player_piece->row_pos = 0;
 	player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
+	game.start_time = SDL_GetTicks();
 }
 
 void start_fourty_lines() {
@@ -360,12 +369,55 @@ void render(SDL_Renderer* renderer) {
 	
 	// Still want to show the game board at end of game
 	if (game.current_state != GAME_STATE_MENU) {
+		// Board and queue grid
 		int cell_width = 32 * scale_factor;
 		int board_x = (float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2;
 		board_x *= scale_factor;
 		int board_y = 50;
 		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
 		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
+
+		// Stats
+
+		// Score
+		char score_label[100];
+		snprintf(score_label, sizeof(score_label), "Score: %d", game.score);
+		SDL_Surface* surface = TTF_RenderText_Solid(ui_font, score_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
+		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+		SDL_Rect rect = { 50 * scale_factor, 50 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
+		SDL_RenderCopy(renderer, texture, NULL, &rect);
+		SDL_FreeSurface(surface);
+		SDL_DestroyTexture(texture);
+
+		// Level
+		char level_label[100];
+		snprintf(level_label, sizeof(level_label), "Level: %d", game.level);
+		surface = TTF_RenderText_Solid(ui_font, level_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
+		texture = SDL_CreateTextureFromSurface(renderer, surface);
+		rect = (SDL_Rect){ 50 * scale_factor, 100 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
+		SDL_RenderCopy(renderer, texture, NULL, &rect);
+		SDL_FreeSurface(surface);
+		SDL_DestroyTexture(texture);
+
+		// Lines Cleared
+		char lines_label[100];
+		snprintf(lines_label, sizeof(lines_label), "Lines Cleared: %d", game.lines_cleared);
+		surface = TTF_RenderText_Solid(ui_font, lines_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
+		texture = SDL_CreateTextureFromSurface(renderer, surface);
+		rect = (SDL_Rect){ 50 * scale_factor, 150 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
+		SDL_RenderCopy(renderer, texture, NULL, &rect);
+		SDL_FreeSurface(surface);
+		SDL_DestroyTexture(texture);
+
+		// Time
+		char time_label[100];
+		snprintf(time_label, sizeof(time_label), "Time: %d", (SDL_GetTicks() - game.start_time) / 1000);
+		surface = TTF_RenderText_Solid(ui_font, time_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
+		texture = SDL_CreateTextureFromSurface(renderer, surface);
+		rect = (SDL_Rect){ 50 * scale_factor, 200 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
+		SDL_RenderCopy(renderer, texture, NULL, &rect);
+		SDL_FreeSurface(surface);
+		SDL_DestroyTexture(texture);
 	}
 
 	SDL_RenderPresent(renderer);
