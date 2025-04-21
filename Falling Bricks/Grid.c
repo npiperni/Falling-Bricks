@@ -385,48 +385,48 @@ int check_and_clear_full_rows(Grid* grid) {
 					bool has_below = false;
 
 					// Check the entire row above
-					//if (row - 1 > 0) {
-					//	for (int i = 0; i < grid->width; i++)
-					//	{
-					//		if (grid->cells[row - 1][i].piece == piece) {
-					//			has_above = true;
-					//			break; // Stop early if any block is found above
-					//		}
-					//	}
-					//}
-
-					// Check the entire row above
-
-					if (local_row > 0) {
-						for (int c = 0; c < piece->width; c++) {
-							if (piece->shape[(local_row - 1) * piece->width + c]) {
+					if (row - 1 > 0) {
+						for (int i = 0; i < grid->width; i++)
+						{
+							if (grid->cells[row - 1][i].piece == piece) {
 								has_above = true;
 								break; // Stop early if any block is found above
 							}
 						}
 					}
 
-					// Check the entire row below
-					//if (row + 1 < grid->height - 1) {
-					//	for (int i = 0; i < grid->width; i++)
-					//	{
-					//		if (grid->cells[row + 1][i].piece == piece) {
-					//			has_below = true;
-					//			break; // Stop early if any block is found below
+					// Check the entire row above
+
+					//if (local_row > 0) {
+					//	for (int c = 0; c < piece->width; c++) {
+					//		if (piece->shape[(local_row - 1) * piece->width + c]) {
+					//			has_above = true;
+					//			break; // Stop early if any block is found above
 					//		}
 					//	}
 					//}
 
 					// Check the entire row below
-
-					if (local_row < piece->height - 1) {
-						for (int c = 0; c < piece->width; c++) {
-							if (piece->shape[(local_row + 1) * piece->width + c]) {
+					if (row + 1 < grid->height - 1) {
+						for (int i = 0; i < grid->width; i++)
+						{
+							if (grid->cells[row + 1][i].piece == piece) {
 								has_below = true;
 								break; // Stop early if any block is found below
 							}
 						}
 					}
+
+					// Check the entire row below
+
+					//if (local_row < piece->height - 1) {
+					//	for (int c = 0; c < piece->width; c++) {
+					//		if (piece->shape[(local_row + 1) * piece->width + c]) {
+					//			has_below = true;
+					//			break; // Stop early if any block is found below
+					//		}
+					//	}
+					//}
 
 					if (has_above && has_below && !dynamic_array_contains(pieces_to_split, piece)) {
 						add_to_dynamic_array(pieces_to_split, piece);
