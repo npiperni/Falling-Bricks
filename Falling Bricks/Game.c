@@ -29,8 +29,7 @@ int ui_font_size = LABEL_DEFAULT_FONT_SIZE;
 
 float scale_factor = 1.0f;
 
-bool round_active = false;
-bool dropping_pieces = false;
+int drop_speed = 1000;
 
 Piece* player_piece = NULL;
 Grid* game_board = NULL;
@@ -59,9 +58,12 @@ struct Game {
 	GameState current_state;
 	GameMode current_mode;
 	int score;
-	int lines_cleared;
+	int total_lines_cleared;
 	int level;
 	int start_time;
+	int pause_start_time;
+	int total_paused_time;
+	int current_lines_cleared;
 } game = { 0 };
 
 
@@ -72,6 +74,9 @@ struct Flags {
 	bool rotate_player;
 	bool drop_player;
 	bool pause;
+	bool round_active;
+	bool clearing_rows;
+	bool dropping_pieces;
 } flags = { 0 };
 
 static Piece* create_random_piece() {
@@ -91,9 +96,9 @@ static void screenshot_debug() {
 void start_game() {
 	game.level = 1;
 	game.score = 0;
-	game.lines_cleared = 0;
+	game.total_lines_cleared = 0;
 	game.current_state = GAME_STATE_PLAYING;
-	round_active = true;
+	flags.round_active = true;
 	last_drop_time = SDL_GetTicks();
 	player_piece = create_random_piece();
 	player_piece->row_pos = 0;
@@ -118,7 +123,7 @@ void start_endless() {
 
 void main_menu() {
 	game.current_state = GAME_STATE_MENU;
-	round_active = false;
+	flags.round_active = false;
 }
 
 void send_quit() {
@@ -291,16 +296,29 @@ void update() {
 	//printf("%d %d\n", display_mode.w, display_mode.h);
 
 	bool lock_piece = false;
-	bool drop = false;
+	bool drop_player = false;
 
-	if (round_active) {
-		if (dropping_pieces) {
-			SDL_Delay(1000);
-			drop_all_pieces(game_board);
-			if (check_and_clear_full_rows(game_board) == 0) {
-				dropping_pieces = false;
+	if (flags.round_active) {
+		if (flags.clearing_rows) {
+			// Check for full rows
+			game.current_lines_cleared = check_and_clear_full_rows(game_board);
+			if (game.current_lines_cleared > 0) {
+				flags.dropping_pieces = true;
+				game.pause_start_time = SDL_GetTicks();
+				game.total_lines_cleared += game.current_lines_cleared;
+				game.score += game.current_lines_cleared * 10 * game.current_lines_cleared;
 			}
+			flags.clearing_rows = false;
+			return;
+		}
+		if (flags.dropping_pieces) {
+			SDL_Delay(4000);
+			drop_all_pieces(game_board);
+			game.total_paused_time += SDL_GetTicks() - game.pause_start_time;
 			last_drop_time = SDL_GetTicks();
+			flags.dropping_pieces = false;
+			// Check for full rows again
+			flags.clearing_rows = true;
 			return;
 		}
 		if (SDL_GetTicks() - last_drop_time >= 1000) {
@@ -322,7 +340,7 @@ void update() {
 			flags.move_player_right = false;
 		}
 		if (flags.drop_player) {
-			drop = true;
+			drop_player = true;
 			lock_piece = true;
 			flags.drop_player = false;
 		}
@@ -337,10 +355,10 @@ void update() {
 		}
 
 		clear_unlocked_cells(game_board);
-		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop);
+		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop_player);
 
 		if (!piece_added) {
-			round_active = false;
+			flags.round_active = false;
 			destroy_piece(player_piece);
 			player_piece = NULL;
 			printf("Game Over\n");
@@ -366,12 +384,8 @@ void update() {
 				current = current->next;
 			}
 
-			// Check for full rows
-			if (check_and_clear_full_rows(game_board) > 0) {
-				dropping_pieces = true;
-				return;
-			}
-			
+			// Check for full rows on next iteration
+			flags.clearing_rows = true;
 		}
 	}
 }
@@ -401,39 +415,63 @@ void render(SDL_Renderer* renderer) {
 		// Stats
 		int stats_board_padding = 10 * scale_factor;
 		int stats_x = board_x - stats_board_padding;
-		int stats_y = board_y;
+		int stats_y = board_y + cell_width * BOARD_HEIGHT;
 
-		int stats_verttical_offset = 10 * scale_factor;
+		int stats_vertical_offset = 15 * scale_factor;
 
 		const char* labels[] = {"SCORE", "LEVEL", "LINES", "TIME"};
-		int values[] = { game.score, game.level, game.lines_cleared, game.start_time };
-		for (int i = 0; i < 4; i++) {
-			stats_y += draw_label(renderer, stats_x, stats_y, labels[i], label_font_small, true).h;
+		int values[] = { game.score, game.level, game.total_lines_cleared, 0 };
+
+		// Easier to draw bottom to top in this case
+		for (int i = 3; i >= 0; i--) {
+			if (i == 2 && game.current_mode == FOURTY_LINES) {
+				SDL_Rect small_label = draw_label(renderer, stats_x, stats_y, "/40", label_font_small, true, true);
+				stats_x -= small_label.w;
+			}
+			else if (i == 3) {
+				int time_ms = (SDL_GetTicks() - game.start_time - game.total_paused_time);
+				if (game.current_mode == BLITZ) {
+					// In this case we count down from 2 minutes
+					time_ms = 120000 - time_ms;
+				}
+				int small_label_w, _;
+				TTF_SizeText(label_font_small, ".000", &small_label_w, &_);
+				char mins_secs_buffer[100];
+				char millis_buffer[100];
+				time_formater(mins_secs_buffer, millis_buffer, sizeof(mins_secs_buffer), time_ms);
+				draw_label(renderer, stats_x - small_label_w, stats_y, millis_buffer, label_font_small, false, true);
+				
+				stats_x -= small_label_w;
+				SDL_Rect large_label = draw_label(renderer, stats_x, stats_y, mins_secs_buffer, label_font, true, true);
+				stats_x = board_x - stats_board_padding;
+				stats_y -= large_label.h;
+				stats_y -= draw_label(renderer, stats_x, stats_y, labels[i], label_font_small, true, true).h + stats_vertical_offset;
+				continue;
+			}
 			char label[100];
 			snprintf(label, sizeof(label), "%d", values[i]);
-			stats_y += draw_label(renderer, stats_x, stats_y, label, label_font, true).h + stats_verttical_offset;
+			stats_y -= draw_label(renderer, stats_x, stats_y, label, label_font, true, true).h;
+			stats_x = board_x - stats_board_padding;
+			stats_y -= draw_label(renderer, stats_x, stats_y, labels[i], label_font_small, true, true).h + stats_vertical_offset;
 		}
 
-		//// Score
-		//draw_label(renderer, stats_x, 50, "SCORE", ui_font, true);
-		//char score_label[100];
-		//snprintf(score_label, sizeof(score_label), "%d", game.score);
-		//draw_label(renderer, stats_x, 50 + stats_verttical_offset, score_label, ui_font, true);
-
-		//// Level
-		//char level_label[100];
-		//snprintf(level_label, sizeof(level_label), "Level: %d", game.level);
-		//draw_label(renderer, stats_x, 50 + 2 * stats_verttical_offset, level_label, ui_font, true);
-
-		//// Lines Cleared
-		//char lines_label[100];
-		//snprintf(lines_label, sizeof(lines_label), "Lines Cleared: %d", game.lines_cleared);
-		//draw_label(renderer, stats_x, 50 + 3 * stats_verttical_offset, lines_label, ui_font, true);
-
-		//// Time
-		//char time_label[100];
-		//snprintf(time_label, sizeof(time_label), "Time: %d", (SDL_GetTicks() - game.start_time) / 1000);
-		//draw_label(renderer, stats_x, 250 * scale_factor, time_label, ui_font, true);
+		// Line clear label
+		if (game.current_lines_cleared > 0) {
+			char label[50];
+			if (game.current_lines_cleared == 1) {
+				SDL_strlcpy(label, "SINGLE", sizeof(label));
+			}
+			else if (game.current_lines_cleared == 2) {
+				SDL_strlcpy(label, "DOUBLE", sizeof(label));
+			}
+			else if (game.current_lines_cleared == 3) {
+				SDL_strlcpy(label, "TRIPLE", sizeof(label));
+			}
+			else if (game.current_lines_cleared == 4) {
+				SDL_strlcpy(label, "QUADRUPLE", sizeof(label));
+			}
+			draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, label, label_font, true, true);
+		}
 	}
 
 	SDL_RenderPresent(renderer);
