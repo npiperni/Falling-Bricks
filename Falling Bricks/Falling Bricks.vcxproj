@@ -141,6 +141,7 @@
     <ClCompile Include="Piece.c" />
     <ClCompile Include="DynamicArray.c" />
     <ClCompile Include="Queue.c" />
+    <ClCompile Include="Label.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
@@ -151,6 +152,7 @@
     <ClInclude Include="Piece.h" />
     <ClInclude Include="DynamicArray.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="Label.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -10,6 +10,7 @@
 #include "Queue.h"
 #include "DynamicArray.h"
 #include "Menu.h"
+#include "Label.h"
 #include "Game.h"
 
 #define BOARD_WIDTH 10
@@ -17,11 +18,16 @@
 
 extern TTF_Font* button_font;
 extern TTF_Font* title_font;
-extern TTF_Font* ui_font;
+extern TTF_Font* label_font;
+extern TTF_Font* label_font_small;
 
 int last_frame_time = 0;
 
 int last_drop_time = 0;
+
+int ui_font_size = LABEL_DEFAULT_FONT_SIZE;
+
+float scale_factor = 1.0f;
 
 bool round_active = false;
 bool dropping_pieces = false;
@@ -184,14 +190,35 @@ bool setup() {
 void cleanup() {
 	destroy_piece(player_piece);
 	destroy_grid(game_board);
+	destroy_grid(queue_grid);
 	destroy_queue(next_pieces);
 	destroy_title_menu(title_menu);
 	destroy_game_over_menu(game_over_menu);
+	player_piece = NULL;
+	game_board = NULL;
+	queue_grid = NULL;
+	next_pieces = NULL;
+	title_menu = NULL;
+	game_over_menu = NULL;
 }
 
 void process_input(bool* running) {
 	SDL_Event event;
 	SDL_PollEvent(&event);
+
+	if (event.type == SDL_WINDOWEVENT) {
+		if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+			int window_width = event.window.data1; 
+			int window_height = event.window.data2;
+			scale_factor = MIN((float)window_width / WINDOW_WIDTH, (float)window_height / WINDOW_HEIGHT);
+			title_menu->scale_factor = scale_factor;
+			game_over_menu->scale_factor = scale_factor;
+			TTF_CloseFont(label_font);
+			label_font = TTF_OpenFont("PoltBold-V5aZ.otf", (int)(LABEL_DEFAULT_FONT_SIZE * scale_factor));
+			TTF_CloseFont(label_font_small);
+			label_font_small = TTF_OpenFont("Polt-AABM.otf", (int)(LABEL_DEFAULT_SMALL_FONT_SIZE * scale_factor));
+		}	
+	}
 
 	if (event.type == SDL_QUIT) {
 		*running = false;
@@ -231,6 +258,7 @@ void process_input(bool* running) {
 			flags.drop_player = true;
 		}
 	}
+	
 }
 
 void update() {
@@ -353,17 +381,10 @@ void render(SDL_Renderer* renderer) {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
-	SDL_Window* window = SDL_GetWindowFromID(1);
-	int window_width, window_height;
-	SDL_GetWindowSize(window, &window_width, &window_height);
-	float scale_factor = MIN((float)window_width / WINDOW_WIDTH, (float)window_height / WINDOW_HEIGHT);
-
 	if (game.current_state == GAME_STATE_MENU) {
-		title_menu->scale_factor = scale_factor;
 		draw_title_menu(title_menu, renderer);
 	}
 	else if (game.current_state == GAME_OVER_MENU) {
-		game_over_menu->scale_factor = scale_factor;
 		draw_game_over_menu(game_over_menu, renderer);
 	}
 	
@@ -378,46 +399,41 @@ void render(SDL_Renderer* renderer) {
 		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
 
 		// Stats
+		int stats_board_padding = 10 * scale_factor;
+		int stats_x = board_x - stats_board_padding;
+		int stats_y = board_y;
 
-		// Score
-		char score_label[100];
-		snprintf(score_label, sizeof(score_label), "Score: %d", game.score);
-		SDL_Surface* surface = TTF_RenderText_Solid(ui_font, score_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
-		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-		SDL_Rect rect = { 50 * scale_factor, 50 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
-		SDL_RenderCopy(renderer, texture, NULL, &rect);
-		SDL_FreeSurface(surface);
-		SDL_DestroyTexture(texture);
+		int stats_verttical_offset = 10 * scale_factor;
 
-		// Level
-		char level_label[100];
-		snprintf(level_label, sizeof(level_label), "Level: %d", game.level);
-		surface = TTF_RenderText_Solid(ui_font, level_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
-		texture = SDL_CreateTextureFromSurface(renderer, surface);
-		rect = (SDL_Rect){ 50 * scale_factor, 100 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
-		SDL_RenderCopy(renderer, texture, NULL, &rect);
-		SDL_FreeSurface(surface);
-		SDL_DestroyTexture(texture);
+		const char* labels[] = {"SCORE", "LEVEL", "LINES", "TIME"};
+		int values[] = { game.score, game.level, game.lines_cleared, game.start_time };
+		for (int i = 0; i < 4; i++) {
+			stats_y += draw_label(renderer, stats_x, stats_y, labels[i], label_font_small, true).h;
+			char label[100];
+			snprintf(label, sizeof(label), "%d", values[i]);
+			stats_y += draw_label(renderer, stats_x, stats_y, label, label_font, true).h + stats_verttical_offset;
+		}
 
-		// Lines Cleared
-		char lines_label[100];
-		snprintf(lines_label, sizeof(lines_label), "Lines Cleared: %d", game.lines_cleared);
-		surface = TTF_RenderText_Solid(ui_font, lines_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
-		texture = SDL_CreateTextureFromSurface(renderer, surface);
-		rect = (SDL_Rect){ 50 * scale_factor, 150 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
-		SDL_RenderCopy(renderer, texture, NULL, &rect);
-		SDL_FreeSurface(surface);
-		SDL_DestroyTexture(texture);
+		//// Score
+		//draw_label(renderer, stats_x, 50, "SCORE", ui_font, true);
+		//char score_label[100];
+		//snprintf(score_label, sizeof(score_label), "%d", game.score);
+		//draw_label(renderer, stats_x, 50 + stats_verttical_offset, score_label, ui_font, true);
 
-		// Time
-		char time_label[100];
-		snprintf(time_label, sizeof(time_label), "Time: %d", (SDL_GetTicks() - game.start_time) / 1000);
-		surface = TTF_RenderText_Solid(ui_font, time_label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
-		texture = SDL_CreateTextureFromSurface(renderer, surface);
-		rect = (SDL_Rect){ 50 * scale_factor, 200 * scale_factor, surface->w * scale_factor, surface->h * scale_factor };
-		SDL_RenderCopy(renderer, texture, NULL, &rect);
-		SDL_FreeSurface(surface);
-		SDL_DestroyTexture(texture);
+		//// Level
+		//char level_label[100];
+		//snprintf(level_label, sizeof(level_label), "Level: %d", game.level);
+		//draw_label(renderer, stats_x, 50 + 2 * stats_verttical_offset, level_label, ui_font, true);
+
+		//// Lines Cleared
+		//char lines_label[100];
+		//snprintf(lines_label, sizeof(lines_label), "Lines Cleared: %d", game.lines_cleared);
+		//draw_label(renderer, stats_x, 50 + 3 * stats_verttical_offset, lines_label, ui_font, true);
+
+		//// Time
+		//char time_label[100];
+		//snprintf(time_label, sizeof(time_label), "Time: %d", (SDL_GetTicks() - game.start_time) / 1000);
+		//draw_label(renderer, stats_x, 250 * scale_factor, time_label, ui_font, true);
 	}
 
 	SDL_RenderPresent(renderer);

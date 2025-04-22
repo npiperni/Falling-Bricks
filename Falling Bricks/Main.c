@@ -10,7 +10,8 @@
 
 TTF_Font* button_font = NULL;
 TTF_Font* title_font = NULL;
-TTF_Font* ui_font = NULL;
+TTF_Font* label_font = NULL;
+TTF_Font* label_font_small = NULL;
 
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -57,26 +58,27 @@ bool load_fonts() {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
 		return false;
 	}
-	ui_font = TTF_OpenFont("Polt-AABM.otf", 48);
-	if (!ui_font) {
+	label_font = TTF_OpenFont("PoltBold-V5aZ.otf", LABEL_DEFAULT_FONT_SIZE);
+	if (!label_font) {
+		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+		return false;
+	}
+	label_font_small = TTF_OpenFont("Polt-AABM.otf", LABEL_DEFAULT_SMALL_FONT_SIZE);
+	if (!label_font_small) {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
 		return false;
 	}
 }
 
 void free_fonts() {
-	if (button_font) {
-		TTF_CloseFont(button_font);
-		button_font = NULL;
-	}
-	if (title_font) {
-		TTF_CloseFont(title_font);
-		title_font = NULL;
-	}
-	if (ui_font) {
-		TTF_CloseFont(ui_font);
-		ui_font = NULL;
-	}
+	TTF_CloseFont(button_font);
+	button_font = NULL;
+	TTF_CloseFont(title_font);
+	title_font = NULL;
+	TTF_CloseFont(label_font);
+	label_font = NULL;
+	TTF_CloseFont(label_font_small);
+	label_font_small = NULL;
 	TTF_Quit();
 }
 

@@ -25,7 +25,7 @@ static void handle_hover(Button* button) {
 	}
 }
 
-Button* create_button(int x, int y, int width, int height, SDL_Color color, ButtonCallback on_click, char* label, TTF_Font* font) {
+Button* create_button(int x, int y, int width, int height, SDL_Color color, ButtonCallback on_click, const char* label, TTF_Font* font) {
 	Button* button = malloc(sizeof(Button));
 	if (!button) {
 		fprintf(stderr, "Error: Failed to allocate memory for Button\n");
@@ -41,7 +41,7 @@ Button* create_button(int x, int y, int width, int height, SDL_Color color, Butt
 	button->scale_factor = 1.0f;
 
 	button->label = label;
-	SDL_Surface* text_surface = TTF_RenderText_Solid(font, label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
+	SDL_Surface* text_surface = TTF_RenderText_Blended(font, label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });
 	button->texture = SDL_CreateTextureFromSurface(SDL_GetRenderer(SDL_GetWindowFromID(1)), text_surface);
 	SDL_FreeSurface(text_surface);
 
