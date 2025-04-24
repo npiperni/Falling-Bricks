@@ -450,6 +450,8 @@ void update() {
 		clear_unlocked_cells(game_board);
 		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop_player);
 		if (!piece_added) {
+			// If the piece can't be added, it means it has reached the top of the board
+			mark_x_cells(game_board, player_piece);
 			game_over();
 			return;
 		}

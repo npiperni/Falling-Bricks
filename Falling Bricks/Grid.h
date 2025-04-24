@@ -9,6 +9,7 @@ typedef struct {
 	Piece* piece;
 	bool locked;
 	bool shadow;
+	bool x;
 } Cell;
 
 typedef struct {
@@ -29,6 +30,8 @@ bool validate_piece_position(Grid* grid, Piece* piece);
 bool validate_piece_at_position(Grid* grid, Piece* piece, int row, int col);
 
 bool add_piece_to_grid(Grid* grid, Piece* piece, bool lock, bool drop);
+
+void mark_x_cells(Grid* grid, Piece* piece);
 
 Piece* try_rotate_piece(Grid* grid, Piece* piece);
 
