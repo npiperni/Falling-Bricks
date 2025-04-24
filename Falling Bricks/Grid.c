@@ -1,5 +1,6 @@
 #include "Grid.h"
 #include <stdio.h>
+#include "Constants.h"
 
 static bool allocate_cells(Grid* grid);
 static void deallocate_cells(Cell** cells, int height);
@@ -9,6 +10,7 @@ static bool insert_piece(Grid* grid, Piece* piece, bool lock);
 static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock);
 static void mark_shadow_predictions(Grid* grid, Piece* piece);
 static void remove_empty_pieces(Grid* grid);
+static void clear_x_cells(Grid* grid);
 
 // Possible position shifts (row, col) to check after rotation
 static const int wall_kick_attempts[10][2] = {
@@ -24,7 +26,20 @@ static const int wall_kick_attempts[10][2] = {
 	{ +2,  0 }  // Long piece needs more room
 };
 
-Grid* create_grid(int width, int height, bool show_lines) {
+static bool is_near_height_limit(Grid* grid) {
+	SDL_assert(grid->height > 4);
+	// Check if there is a locked piece in the top 4 rows
+	for (int row = 0; row < 4; row++) {
+		for (int col = 0; col < grid->width; col++) {
+			if (grid->cells[row][col].locked && grid->cells[row][col].piece) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+Grid* create_grid(int width, int height, bool show_lines, bool is_game_board) {
 	Grid* grid = malloc(sizeof(Grid));
 	if (!grid) {
 		fprintf(stderr, "Error: Failed to allocate memory for Grid\n");
@@ -38,6 +53,7 @@ Grid* create_grid(int width, int height, bool show_lines) {
 	grid->width = width;
 	grid->height = height;
 	grid->show_grid_lines = show_lines;
+	grid->is_game_board = is_game_board;
 
 	if (!allocate_cells(grid)) {
 		return NULL;
@@ -112,6 +128,9 @@ static void mark_shadow_predictions(Grid* grid, Piece* piece) {
 static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock) {
 	int row = piece->row_pos;
 	int col = piece->col_pos;
+	if (!validate_grid_position(grid, row, col)) {
+		return false; // Don't even bother attempting to drop if its current position is invalid. Can cause problems.
+	}
 	for (int i = 0; i <= grid->height - row; i++) {
 		if (!validate_piece_at_position(grid, piece, row + i, col)) {
 			piece->row_pos = row + i - 1;
@@ -175,6 +194,7 @@ void clear_grid(Grid* grid) {
 			grid->cells[i][j].locked = false;
 		}
 	}
+	clear_x_cells(grid);
 	clear_dynamic_array(grid->locked_pieces);
 }
 
@@ -194,6 +214,8 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 		SDL_RenderFillRect(renderer, &right_border);
 	}
 
+	bool height_warning = grid->is_game_board && is_near_height_limit(grid);
+
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
 			SDL_Rect cell_rect = {
@@ -202,6 +224,10 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 				cell_width,
 				cell_width
 			};
+			if (i < 2 && height_warning) {
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 128);
+				SDL_RenderFillRect(renderer, &cell_rect);
+			}
 			if (grid->show_grid_lines) {
 				SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
 				SDL_RenderDrawRect(renderer, &cell_rect);
@@ -233,6 +259,46 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 			if (grid->cells[i][j].locked && !grid->cells[i][j].piece) {
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
 				SDL_RenderFillRect(renderer, &cell_rect);
+			}
+
+			if (grid->cells[i][j].x) {
+				SDL_SetRenderDrawColor(renderer, 210, 0, 0, 255);
+				// Top left to bottom right
+				// To draw a thicker line, draw multiple lines with a 1 pixel offset
+                for (int k = -3; k < 4; k++) {
+					int x = MAX(cell_rect.x, cell_rect.x + k) + 1;
+					int y = MAX(cell_rect.y, cell_rect.y - k) + 1;
+					int x2 = MIN(cell_rect.x + cell_width, cell_rect.x + cell_width + k) - 2;
+					int y2 = MIN(cell_rect.y + cell_width, cell_rect.y + cell_width - k) - 2;
+					SDL_RenderDrawLine(renderer, x, y, x2, y2);
+				}
+
+				// Bottom left to top right
+				for (int k = -3; k < 4; k++) {
+					int x = MAX(cell_rect.x, cell_rect.x + k) + 1;
+					int y = MIN(cell_rect.y + cell_width, cell_rect.y + cell_width + k) - 2;
+					int x2 = MIN(cell_rect.x + cell_width, cell_rect.x + cell_width + k) - 2;
+					int y2 = MAX(cell_rect.y, cell_rect.y + k) + 1;
+					SDL_RenderDrawLine(renderer, x, y, x2, y2);
+				}
+			}
+		}
+	}
+}
+
+static void clear_x_cells(Grid* grid) {
+	for (int i = 0; i < grid->height; i++) {
+		for (int j = 0; j < grid->width; j++) {
+			grid->cells[i][j].x = false;
+		}
+	}
+}
+
+void mark_x_cells(Grid* grid, Piece* piece) {
+	for (int i = 0; i < piece->height; i++) {
+		for (int j = 0; j < piece->width; j++) {
+			if (piece->shape[i * piece->width + j]) {
+				grid->cells[piece->row_pos + i][piece->col_pos + j].x = true;
 			}
 		}
 	}
@@ -300,6 +366,7 @@ static void init_cells_in_row(Cell* cells, int width) {
 		cells[i].piece = NULL;
 		cells[i].locked = false;
 		cells[i].shadow = false;
+		cells[i].x = false;
 	}
 }
 

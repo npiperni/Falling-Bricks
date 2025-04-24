@@ -240,9 +240,9 @@ bool setup() {
 		send_quit
 	}, button_font);
 
-	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true);
+	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true, true);
 
-	queue_grid = create_grid(6, 19, true);
+	queue_grid = create_grid(6, 19, true,false);
 	queue_grid->show_grid_lines = false;
 
 	next_pieces = create_queue(destroy_piece);
@@ -450,6 +450,8 @@ void update() {
 		clear_unlocked_cells(game_board);
 		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop_player);
 		if (!piece_added) {
+			// If the piece can't be added, it means it has reached the top of the board
+			mark_x_cells(game_board, player_piece);
 			game_over();
 			return;
 		}
