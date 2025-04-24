@@ -16,10 +16,11 @@ typedef struct {
 	int width;
 	int height;
 	bool show_grid_lines;
+	bool is_game_board;
 	DynamicArray* locked_pieces;
 } Grid;
 
-Grid* create_grid(int width, int height, bool show_lines);
+Grid* create_grid(int width, int height, bool show_lines, bool is_game_board);
 
 void destroy_grid(Grid* grid);
 

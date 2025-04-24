@@ -240,9 +240,9 @@ bool setup() {
 		send_quit
 	}, button_font);
 
-	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true);
+	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true, true);
 
-	queue_grid = create_grid(6, 19, true);
+	queue_grid = create_grid(6, 19, true,false);
 	queue_grid->show_grid_lines = false;
 
 	next_pieces = create_queue(destroy_piece);

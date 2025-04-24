@@ -24,7 +24,20 @@ static const int wall_kick_attempts[10][2] = {
 	{ +2,  0 }  // Long piece needs more room
 };
 
-Grid* create_grid(int width, int height, bool show_lines) {
+static bool is_near_height_limit(Grid* grid) {
+	SDL_assert(grid->height > 4);
+	// Check if there is a locked piece in the top 4 rows
+	for (int row = 0; row < 4; row++) {
+		for (int col = 0; col < grid->width; col++) {
+			if (grid->cells[row][col].locked && grid->cells[row][col].piece) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+Grid* create_grid(int width, int height, bool show_lines, bool is_game_baord) {
 	Grid* grid = malloc(sizeof(Grid));
 	if (!grid) {
 		fprintf(stderr, "Error: Failed to allocate memory for Grid\n");
@@ -38,6 +51,7 @@ Grid* create_grid(int width, int height, bool show_lines) {
 	grid->width = width;
 	grid->height = height;
 	grid->show_grid_lines = show_lines;
+	grid->is_game_board = is_game_baord;
 
 	if (!allocate_cells(grid)) {
 		return NULL;
@@ -194,6 +208,8 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 		SDL_RenderFillRect(renderer, &right_border);
 	}
 
+	bool heigh_warning = grid->is_game_board && is_near_height_limit(grid);
+
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
 			SDL_Rect cell_rect = {
@@ -202,6 +218,10 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 				cell_width,
 				cell_width
 			};
+			if (i < 2 && heigh_warning) {
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 128);
+				SDL_RenderFillRect(renderer, &cell_rect);
+			}
 			if (grid->show_grid_lines) {
 				SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
 				SDL_RenderDrawRect(renderer, &cell_rect);
