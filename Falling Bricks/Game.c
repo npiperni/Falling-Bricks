@@ -22,11 +22,7 @@ int last_frame_time = 0;
 
 int last_drop_time = 0;
 
-int ui_font_size = LABEL_DEFAULT_FONT_SIZE;
-
 float scale_factor = 1.0f;
-
-int drop_speed = 1000;
 
 Piece* player_piece = NULL;
 Grid* game_board = NULL;
@@ -42,7 +38,8 @@ struct GameOverMenu* game_over_menu = NULL;
 typedef enum {
 	GAME_STATE_MENU,
 	GAME_OVER_MENU,
-	GAME_STATE_PLAYING
+	GAME_STATE_PLAYING,
+	GAME_STATE_COUNTDOWN
 } GameState;
 
 typedef enum {
@@ -62,10 +59,10 @@ struct Game {
 	Uint32 total_paused_time;
 	Uint32 elapsed_time;
 	int current_lines_cleared;
-	char clear_label[20];
+	char main_label[20];
 	Uint32 label_display_start_time;
+	int countdown;
 } game = { 0 };
-
 
 struct Flags {
 	bool move_player_down;
@@ -74,7 +71,6 @@ struct Flags {
 	bool rotate_player;
 	bool drop_player;
 	bool pause;
-	bool round_active;
 	bool clearing_rows;
 	bool dropping_pieces;
 } flags = { 0 };
@@ -82,6 +78,25 @@ struct Flags {
 static Piece* create_random_piece() {
 	int random_piece = rand() % 7;
 	return create_piece(random_piece);
+}
+
+static void dequeue_next_player_piece() {
+	destroy_piece(player_piece);
+	player_piece = dequeue(next_pieces);
+	player_piece->row_pos = 0;
+	player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
+
+	enqueue(next_pieces, create_random_piece());
+	// Update queue grid
+	clear_grid(queue_grid);
+	Node* current = next_pieces->front;
+	for (int i = 0; i < next_pieces->size; i++) {
+		Piece* next_piece = (Piece*)current->data;
+		next_piece->row_pos = 3 * i + 1;
+		next_piece->col_pos = 1;
+		add_piece_to_grid(queue_grid, next_piece, true, false);
+		current = current->next;
+	}
 }
 
 static void screenshot_debug() {
@@ -94,6 +109,14 @@ static void screenshot_debug() {
 }
 
 void start_game() {
+	last_drop_time = SDL_GetTicks();
+	game.start_time = SDL_GetTicks();
+	game.current_state = GAME_STATE_PLAYING;
+	dequeue_next_player_piece();
+}
+
+void prepare_game() {
+	game.main_label[0] = '\0';
 	for (int i = 0; i < 6; i++) {
 		Piece* new_piece = create_random_piece();
 		new_piece->row_pos = 3 * i + 1;
@@ -104,44 +127,38 @@ void start_game() {
 	game.level = 1;
 	game.score = 0;
 	game.total_lines_cleared = 0;
-	game.current_state = GAME_STATE_PLAYING;
-	flags.round_active = true;
-	last_drop_time = SDL_GetTicks();
-	destroy_piece(player_piece);
-	player_piece = create_random_piece();
-	player_piece->row_pos = 0;
-	player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
-	game.start_time = SDL_GetTicks();
 	game.elapsed_time = 0;
 	game.total_paused_time = 0;
+	game.countdown = 3;
+	game.current_state = GAME_STATE_COUNTDOWN;
 }
 
 void start_fourty_lines() {
 	game.current_mode = FOURTY_LINES;
-	start_game();
+	prepare_game();
 }
 
 void start_blitz() {
 	game.current_mode = BLITZ;
-	start_game();
+	prepare_game();
 }
 
 void start_endless() {
 	game.current_mode = ENDLESS;
-	start_game();
+	prepare_game();
 }
 
 void main_menu() {
 	game.current_state = GAME_STATE_MENU;
-	flags.round_active = false;
 	clear_queue(next_pieces);
 	clear_grid(queue_grid);
 	clear_grid(game_board);
+	destroy_piece(player_piece);
+	player_piece = NULL;
 }
 
 void game_over() {
 	game.current_state = GAME_OVER_MENU;
-	flags.round_active = false;
 	flags.clearing_rows = false;
 	flags.dropping_pieces = false;
 	flags.move_player_down = false;
@@ -149,6 +166,7 @@ void game_over() {
 	flags.move_player_right = false;
 	flags.rotate_player = false;
 	flags.drop_player = false;
+	snprintf(game.main_label, sizeof(game.main_label), "GAME OVER!");
 }
 
 void send_quit() {
@@ -295,10 +313,7 @@ void update() {
 	float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
 	last_frame_time = SDL_GetTicks();
 
-	if (game.current_state != GAME_STATE_PLAYING) {
-		return;
-	}
-
+	// Debug, should remove later
 	if (flags.pause) {
 		return;
 	}
@@ -315,7 +330,20 @@ void update() {
 	bool lock_piece = false;
 	bool drop_player = false;
 
-	if (flags.round_active) {
+	if (game.current_state == GAME_STATE_COUNTDOWN) {
+		if (SDL_GetTicks() - game.label_display_start_time >= COUNTDOWN_DISPLAY_DURATION) {
+			snprintf(game.main_label, sizeof(game.main_label), "%d", game.countdown);
+			game.label_display_start_time = SDL_GetTicks();
+			if (game.countdown <= 0) {
+				snprintf(game.main_label, sizeof(game.main_label), "GO!");
+				start_game();
+			}
+			game.countdown--;
+		}
+		return;
+	}
+
+	if (game.current_state == GAME_STATE_PLAYING) {
 		if (flags.clearing_rows) {
 			// Check for full rows
 			game.current_lines_cleared = check_and_clear_full_rows(game_board);
@@ -325,7 +353,7 @@ void update() {
 				game.total_lines_cleared += game.current_lines_cleared;
 				game.score += game.current_lines_cleared * 10 * game.current_lines_cleared;
 				char* label = get_row_clear_label(game.current_lines_cleared);
-				snprintf(game.clear_label, sizeof(game.clear_label), "%s", label);
+				snprintf(game.main_label, sizeof(game.main_label), "%s", label);
 				game.label_display_start_time = SDL_GetTicks();
 			}
 			flags.clearing_rows = false;
@@ -379,29 +407,17 @@ void update() {
 
 		clear_unlocked_cells(game_board);
 		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop_player);
-
-		if (!piece_added || (game.current_mode == BLITZ && game.elapsed_time > BLITZ_TIME)) {
+		bool time_up = game.current_mode == BLITZ && game.elapsed_time > BLITZ_TIME;
+		if (!piece_added || time_up) {
+			if (time_up) {
+				game.elapsed_time = BLITZ_TIME;
+			}
 			game_over();
 			return;
 		}
 
 		if (lock_piece) {
-			destroy_piece(player_piece);
-			player_piece = dequeue(next_pieces);
-			player_piece->row_pos = 0;
-			player_piece->col_pos = game_board->width / 2 - player_piece->width / 2;
-
-			enqueue(next_pieces, create_random_piece());
-			// Update queue grid
-			clear_grid(queue_grid);
-			Node* current = next_pieces->front;
-			for (int i = 0; i < next_pieces->size; i++) {
-				Piece* next_piece = (Piece*)current->data;
-				next_piece->row_pos = 3 * i + 1;
-				next_piece->col_pos = 1;
-				add_piece_to_grid(queue_grid, next_piece, true, false);
-				current = current->next;
-			}
+			dequeue_next_player_piece();
 			
 			// Check for full rows on next iteration
 			flags.clearing_rows = true;
@@ -462,6 +478,10 @@ void render(SDL_Renderer* renderer) {
 				if (game.current_mode == BLITZ) {
 					// In this case we count down from 2 minutes
 					time_ms = BLITZ_TIME - time_ms;
+					if (time_ms < 10000) {
+						label_style_large_font.color = (SDL_Color){ 200, 0, 0, 255 };
+						label_style_small_font_left.color = (SDL_Color){ 200, 0, 0, 255 };
+					}
 				}
 				int small_label_w, _;
 				TTF_SizeText(label_font_small, ".000", &small_label_w, &_);
@@ -475,6 +495,7 @@ void render(SDL_Renderer* renderer) {
 				stats_x = board_x - stats_board_padding;
 				stats_y -= large_label.h;
 				stats_y -= draw_label(renderer, stats_x, stats_y, labels[i], label_style_small_font).h + stats_vertical_offset;
+				label_style_large_font.color = label_style_small_font_left.color = default_label_style_no_font().color;
 				continue;
 			}
 			char label[100];
@@ -487,9 +508,13 @@ void render(SDL_Renderer* renderer) {
 		// Line clear label
 		LabelStyle label_style_clear_label = default_label_style_no_font();
 		label_style_clear_label.font = label_font;
-		label_style_clear_label.color.a = get_fade_alpha(game.label_display_start_time, 1800);
-		if (label_style_clear_label.color.a > 0)
-			draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, game.clear_label, label_style_clear_label);
+
+		if (game.current_state != GAME_OVER_MENU) {
+			int fade_duration = game.current_state == GAME_STATE_PLAYING ? ROW_LABEL_DISPLAY_DURATION : COUNTDOWN_DISPLAY_DURATION;
+			label_style_clear_label.color.a = get_fade_alpha(game.label_display_start_time, fade_duration);
+		}
+		draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, game.main_label, label_style_clear_label);
+		
 	}
 
 	SDL_RenderPresent(renderer);
