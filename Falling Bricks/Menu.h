@@ -2,16 +2,17 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include "Button.h"
+#include "ResolutionContext.h"
 
 struct TitleMenu {
 	Button* buttons[4];
 	SDL_Texture* title_texture;
-	float scale_factor;
+	ResolutionContext res_context;
 };
 
 struct GameOverMenu {
 	Button* buttons[2];
-	float scale_factor;
+	ResolutionContext res_context;
 };
 
 struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* title_font, TTF_Font* button_font);

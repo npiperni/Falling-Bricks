@@ -11,6 +11,8 @@
 #include "DynamicArray.h"
 #include "Menu.h"
 #include "Label.h"
+#include "LevelBar.h"
+#include "ResolutionContext.h"
 #include "Game.h"
 
 extern TTF_Font* button_font;
@@ -22,7 +24,7 @@ int last_frame_time = 0;
 
 int last_drop_time = 0;
 
-float scale_factor = 1.0f;
+ResolutionContext resolution_context;
 
 Piece* player_piece = NULL;
 Grid* game_board = NULL;
@@ -109,8 +111,8 @@ static void update_drop_speed() {
 
 static void update_level() {
 	if (game.lines_cleared_this_level >= game.required_lines_level_up) {
+		game.lines_cleared_this_level -= game.required_lines_level_up; // Reset lines cleared this level and carry over the rest to next level
 		game.required_lines_level_up = BASE_LINES_PER_LEVEL * pow(1.15, game.level++); // Increase the number of lines needed for next level, then increment level
-		game.lines_cleared_this_level = 0;
 		game.level_up_label_display_start_time = SDL_GetTicks();
 		update_drop_speed();
 	}
@@ -224,6 +226,8 @@ static bool move_player_down() {
 
 bool setup() {
 
+	resolution_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
+
 	title_menu = create_title_menu((ButtonCallback[]) {
 		start_fourty_lines,
 		start_blitz,
@@ -275,13 +279,13 @@ void process_input(bool* running) {
 		if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
 			int window_width = event.window.data1; 
 			int window_height = event.window.data2;
-			scale_factor = MIN((float)window_width / WINDOW_WIDTH, (float)window_height / WINDOW_HEIGHT);
-			title_menu->scale_factor = scale_factor;
-			game_over_menu->scale_factor = scale_factor;
+			resolution_context = get_resolution_context(window_width, window_height);
+			title_menu->res_context = resolution_context;
+			game_over_menu->res_context = resolution_context;
 			TTF_CloseFont(label_font);
-			label_font = TTF_OpenFont("PoltBold-V5aZ.otf", (int)(LABEL_DEFAULT_FONT_SIZE * scale_factor));
+			label_font = TTF_OpenFont("PoltBold-V5aZ.otf", (int)(LABEL_DEFAULT_FONT_SIZE * resolution_context.scale_factor));
 			TTF_CloseFont(label_font_small);
-			label_font_small = TTF_OpenFont("Polt-AABM.otf", (int)(LABEL_DEFAULT_SMALL_FONT_SIZE * scale_factor));
+			label_font_small = TTF_OpenFont("Polt-AABM.otf", (int)(LABEL_DEFAULT_SMALL_FONT_SIZE * resolution_context.scale_factor));
 		}	
 	}
 
@@ -473,13 +477,25 @@ void render(SDL_Renderer* renderer) {
 	
 	// Still want to show the game board at end of game
 	if (game.current_state != GAME_STATE_MENU) {
-		// Board and queue grid
-		int cell_width = 32 * scale_factor;
-		int board_x = (float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2;
-		board_x *= scale_factor;
-		int board_y = 50;
+
+		float scale_factor = resolution_context.scale_factor;
+
+		// Board
+		int board_x = ((float)WINDOW_WIDTH / 2 - (float)CELL_SIZE * BOARD_WIDTH / 2  ) * scale_factor + resolution_context.x_offset;
+		int board_y = ((float)WINDOW_HEIGHT / 2 - (float)CELL_SIZE * BOARD_HEIGHT / 2) * scale_factor + resolution_context.y_offset;
+		int cell_width = CELL_SIZE * scale_factor;
 		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
-		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
+
+		// Level bar
+		int x_pos = 5 * scale_factor + game_board->width * cell_width + board_x;
+		int y_pos = board_y;
+		int w = 20 * scale_factor;
+		int h = cell_width * BOARD_HEIGHT;
+		draw_level_bar(renderer, x_pos, y_pos, w, h, game.lines_cleared_this_level, game.required_lines_level_up);
+
+		x_pos += w + 5 * scale_factor;
+		// Queue grid
+		draw_grid(queue_grid, x_pos, board_y, cell_width, true, renderer);
 
 		// Stats
 		int stats_board_padding = 10 * scale_factor;

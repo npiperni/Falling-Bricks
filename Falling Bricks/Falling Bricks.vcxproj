@@ -136,23 +136,27 @@
     <ClCompile Include="Button.c" />
     <ClCompile Include="Game.c" />
     <ClCompile Include="Grid.c" />
+    <ClCompile Include="LevelBar.c" />
     <ClCompile Include="Main.c" />
     <ClCompile Include="Menu.c" />
     <ClCompile Include="Piece.c" />
     <ClCompile Include="DynamicArray.c" />
     <ClCompile Include="Queue.c" />
     <ClCompile Include="Label.c" />
+    <ClCompile Include="ResolutionContext.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="LevelBar.h" />
     <ClInclude Include="Menu.h" />
     <ClInclude Include="Piece.h" />
     <ClInclude Include="DynamicArray.h" />
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Label.h" />
+    <ClInclude Include="ResolutionContext.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
