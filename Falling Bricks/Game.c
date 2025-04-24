@@ -487,7 +487,7 @@ void render(SDL_Renderer* renderer) {
 		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
 
 		// Level bar
-		int x_pos = 0 * scale_factor + game_board->width * cell_width + board_x;
+		int x_pos = 5 * scale_factor + game_board->width * cell_width + board_x;
 		int y_pos = board_y;
 		int w = 20 * scale_factor;
 		int h = cell_width * BOARD_HEIGHT;
