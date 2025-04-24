@@ -1,13 +1,16 @@
 #include "Button.h"
 #include <SDL.h>
 #include <stdio.h>
+#include "Constants.h"
+#include "ResolutionContext.h"
 
 static SDL_Rect get_scaled_rect(Button* button) {
+	ResolutionContext context = button->res_context;
 	SDL_Rect scaled_rect = {
-		button->rect.x * button->scale_factor,
-		button->rect.y * button->scale_factor,
-		button->rect.w * button->scale_factor,
-		button->rect.h * button->scale_factor
+		button->rect.x * context.scale_factor + context.x_offset,
+		button->rect.y * context.scale_factor + context.y_offset,
+		button->rect.w * context.scale_factor,
+		button->rect.h * context.scale_factor
 	};
 	return scaled_rect;
 }
@@ -38,7 +41,7 @@ Button* create_button(int x, int y, int width, int height, SDL_Color color, Butt
 	button->color = color;
 	button->hovered = false;
 	button->on_click = on_click;
-	button->scale_factor = 1.0f;
+	button->res_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	button->label = label;
 	SDL_Surface* text_surface = TTF_RenderText_Blended(font, label, (SDL_Color) { 255, 255, 255, SDL_ALPHA_OPAQUE });

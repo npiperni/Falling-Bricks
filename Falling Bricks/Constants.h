@@ -14,6 +14,7 @@
 
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 20
+#define CELL_SIZE 32
 
 #define BLITZ_TIME 120000 // 2 minutes
 

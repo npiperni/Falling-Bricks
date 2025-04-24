@@ -15,6 +15,9 @@ void draw_level_bar(SDL_Renderer* renderer, int x, int y, int w, int h, int line
 
 	SDL_SetRenderDrawColor(renderer, 233, 200, 0, 255);
 	int level_height = (int)((float)h * lines / goal);
+	if (level_height > h) {
+		level_height = h;
+	}
 	SDL_Rect rect = { x + border_width, y + border_width + h - level_height, w, level_height };
 	SDL_RenderFillRect(renderer, &rect);
 }
