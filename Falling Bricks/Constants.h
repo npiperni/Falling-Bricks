@@ -15,7 +15,11 @@
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 20
 
-#define BLITZ_TIME 15000 // 2 minutes
+#define BLITZ_TIME 120000 // 2 minutes
 
 #define ROW_LABEL_DISPLAY_DURATION 1800
 #define COUNTDOWN_DISPLAY_DURATION 1000 // 1 second
+#define LEVEL_UP_LABEL_DISPLAY_DURATION 2500 // 2.5 seconds
+
+#define BASE_DROP_SPEED 1000 // 1 second
+#define BASE_LINES_PER_LEVEL 10

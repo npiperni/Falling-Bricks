@@ -229,6 +229,7 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 				SDL_SetRenderDrawColor(renderer, 128, 128, 128, 128);
 				SDL_RenderFillRect(renderer, &cell_rect);
 			}
+			// For debugging, normally this would be an illegal state. Helpful to visualize if row clearing messes up.
 			if (grid->cells[i][j].locked && !grid->cells[i][j].piece) {
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
 				SDL_RenderFillRect(renderer, &cell_rect);

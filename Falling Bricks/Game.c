@@ -54,6 +54,7 @@ struct Game {
 	int score;
 	int total_lines_cleared;
 	int level;
+	int lines_cleared_this_level;
 	Uint32 start_time;
 	Uint32 pause_start_time;
 	Uint32 total_paused_time;
@@ -61,7 +62,10 @@ struct Game {
 	int current_lines_cleared;
 	char main_label[20];
 	Uint32 label_display_start_time;
+	Uint32 level_up_label_display_start_time;
 	int countdown;
+	Uint32 drop_speed;
+	int required_lines_level_up;
 } game = { 0 };
 
 struct Flags {
@@ -99,6 +103,23 @@ static void dequeue_next_player_piece() {
 	}
 }
 
+static void update_drop_speed() {
+	game.drop_speed = MAX(100, BASE_DROP_SPEED * pow(0.93, (game.level - 1)));
+}
+
+static void update_level() {
+	if (game.lines_cleared_this_level >= game.required_lines_level_up) {
+		game.required_lines_level_up = BASE_LINES_PER_LEVEL * pow(1.15, game.level++); // Increase the number of lines needed for next level, then increment level
+		game.lines_cleared_this_level = 0;
+		game.level_up_label_display_start_time = SDL_GetTicks();
+		update_drop_speed();
+	}
+}
+
+static void calculate_score() {
+	game.score += game.current_lines_cleared * 10 * game.current_lines_cleared * game.level;
+}
+
 static void screenshot_debug() {
 	char buffer[100];
 	sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
@@ -127,9 +148,13 @@ void prepare_game() {
 	game.level = 1;
 	game.score = 0;
 	game.total_lines_cleared = 0;
+	game.lines_cleared_this_level = 0;
 	game.elapsed_time = 0;
 	game.total_paused_time = 0;
 	game.countdown = 3;
+	game.drop_speed = BASE_DROP_SPEED;
+	game.required_lines_level_up = BASE_LINES_PER_LEVEL;
+	game.level_up_label_display_start_time = SDL_GetTicks() - LEVEL_UP_LABEL_DISPLAY_DURATION; // Sets it to the past so that it doesn't show up at the start of the game
 	game.current_state = GAME_STATE_COUNTDOWN;
 }
 
@@ -314,9 +339,9 @@ void update() {
 	last_frame_time = SDL_GetTicks();
 
 	// Debug, should remove later
-	if (flags.pause) {
-		return;
-	}
+	//if (flags.pause) {
+	//	return;
+	//}
 
 	//int current_width, current_height;
 	//SDL_GetWindowSize(window, &current_width, &current_height);
@@ -344,6 +369,7 @@ void update() {
 	}
 
 	if (game.current_state == GAME_STATE_PLAYING) {
+		update_level();
 		if (flags.clearing_rows) {
 			// Check for full rows
 			game.current_lines_cleared = check_and_clear_full_rows(game_board);
@@ -351,7 +377,8 @@ void update() {
 				flags.dropping_pieces = true;
 				game.pause_start_time = SDL_GetTicks();
 				game.total_lines_cleared += game.current_lines_cleared;
-				game.score += game.current_lines_cleared * 10 * game.current_lines_cleared;
+				game.lines_cleared_this_level += game.current_lines_cleared;
+				calculate_score();
 				char* label = get_row_clear_label(game.current_lines_cleared);
 				snprintf(game.main_label, sizeof(game.main_label), "%s", label);
 				game.label_display_start_time = SDL_GetTicks();
@@ -371,17 +398,24 @@ void update() {
 			return;
 		}
 		game.elapsed_time = SDL_GetTicks() - game.start_time - game.total_paused_time;
+		bool time_up = game.current_mode == BLITZ && game.elapsed_time > BLITZ_TIME;
+		bool reached_line_limit = game.current_mode == FOURTY_LINES && game.total_lines_cleared >= 40;
+		if ( time_up || reached_line_limit) {
+			if (time_up) {
+				game.elapsed_time = BLITZ_TIME;
+			}
+			game_over();
+			return;
+		}
+		if (player_piece == NULL) {
+			dequeue_next_player_piece();
+		}
 
-		if (SDL_GetTicks() - last_drop_time >= 1000) {
+		if (SDL_GetTicks() - last_drop_time >= game.drop_speed) {
 			last_drop_time = SDL_GetTicks();
 			flags.move_player_down = true;
 		}
 
-		if (flags.move_player_down) {
-			lock_piece = !move_player_down();
-			flags.move_player_down = false;
-			flags.rotate_player = false;
-		}
 		if (flags.move_player_left) {
 			move_player_left();
 			flags.move_player_left = false;
@@ -389,11 +423,6 @@ void update() {
 		if (flags.move_player_right) {
 			move_player_right();
 			flags.move_player_right = false;
-		}
-		if (flags.drop_player) {
-			drop_player = true;
-			lock_piece = true;
-			flags.drop_player = false;
 		}
 		if (flags.rotate_player) {
 			Piece* rotated_piece = try_rotate_piece(game_board, player_piece);
@@ -404,21 +433,26 @@ void update() {
 			}
 			flags.rotate_player = false;
 		}
+		if (flags.move_player_down) {
+			lock_piece = !move_player_down();
+			flags.move_player_down = false;
+		}
+		if (flags.drop_player) {
+			drop_player = true;
+			lock_piece = true;
+			flags.drop_player = false;
+		}
 
 		clear_unlocked_cells(game_board);
 		bool piece_added = add_piece_to_grid(game_board, player_piece, lock_piece, drop_player);
-		bool time_up = game.current_mode == BLITZ && game.elapsed_time > BLITZ_TIME;
-		if (!piece_added || time_up) {
-			if (time_up) {
-				game.elapsed_time = BLITZ_TIME;
-			}
+		if (!piece_added) {
 			game_over();
 			return;
 		}
 
 		if (lock_piece) {
-			dequeue_next_player_piece();
-			
+			destroy_piece(player_piece);
+			player_piece = NULL;
 			// Check for full rows on next iteration
 			flags.clearing_rows = true;
 		}
@@ -505,16 +539,20 @@ void render(SDL_Renderer* renderer) {
 			stats_y -= draw_label(renderer, stats_x, stats_y, labels[i], label_style_small_font).h + stats_vertical_offset;
 		}
 
-		// Line clear label
-		LabelStyle label_style_clear_label = default_label_style_no_font();
-		label_style_clear_label.font = label_font;
+		// Line clear and countdown label (used for both)
+		LabelStyle label_style = default_label_style_no_font();
+		label_style.font = label_font;
 
 		if (game.current_state != GAME_OVER_MENU) {
 			int fade_duration = game.current_state == GAME_STATE_PLAYING ? ROW_LABEL_DISPLAY_DURATION : COUNTDOWN_DISPLAY_DURATION;
-			label_style_clear_label.color.a = get_fade_alpha(game.label_display_start_time, fade_duration);
+			label_style.color.a = get_fade_alpha(game.label_display_start_time, fade_duration);
 		}
-		draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, game.main_label, label_style_clear_label);
+		stats_y -= draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, game.main_label, label_style).h + stats_vertical_offset;
 		
+		// Level up label
+		label_style.color = (SDL_Color){ 233, 200, 0, 255 };
+		label_style.color.a = get_fade_alpha(game.level_up_label_display_start_time, LEVEL_UP_LABEL_DISPLAY_DURATION);
+		draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, "LEVEL UP!", label_style);
 	}
 
 	SDL_RenderPresent(renderer);
