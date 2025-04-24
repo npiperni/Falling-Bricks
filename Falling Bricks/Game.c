@@ -11,6 +11,7 @@
 #include "DynamicArray.h"
 #include "Menu.h"
 #include "Label.h"
+#include "LevelBar.h"
 #include "Game.h"
 
 extern TTF_Font* button_font;
@@ -109,8 +110,8 @@ static void update_drop_speed() {
 
 static void update_level() {
 	if (game.lines_cleared_this_level >= game.required_lines_level_up) {
+		game.lines_cleared_this_level -= game.required_lines_level_up; // Reset lines cleared this level and carry over the rest to next level
 		game.required_lines_level_up = BASE_LINES_PER_LEVEL * pow(1.15, game.level++); // Increase the number of lines needed for next level, then increment level
-		game.lines_cleared_this_level = 0;
 		game.level_up_label_display_start_time = SDL_GetTicks();
 		update_drop_speed();
 	}
@@ -473,13 +474,25 @@ void render(SDL_Renderer* renderer) {
 	
 	// Still want to show the game board at end of game
 	if (game.current_state != GAME_STATE_MENU) {
-		// Board and queue grid
-		int cell_width = 32 * scale_factor;
-		int board_x = (float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2;
-		board_x *= scale_factor;
+		// Board
+		int cell_width = 32;
+		int board_x = ((float)WINDOW_WIDTH / 2 - (float)cell_width * BOARD_WIDTH / 2) * scale_factor;
+		printf("scale factor: %f\n", scale_factor);
+		cell_width *= scale_factor;
+		//board_x *= scale_factor;
 		int board_y = 50;
 		draw_grid(game_board, board_x, board_y, cell_width, true, renderer);
-		draw_grid(queue_grid, 50 * scale_factor + game_board->width * cell_width + board_x, board_y, cell_width, true, renderer);
+
+		// Level bar
+		int x_pos = 0 * scale_factor + game_board->width * cell_width + board_x;
+		int y_pos = board_y;
+		int w = 20 * scale_factor;
+		int h = cell_width * BOARD_HEIGHT;
+		draw_level_bar(renderer, x_pos, y_pos, w, h, game.lines_cleared_this_level, game.required_lines_level_up);
+
+		x_pos += w + 5 * scale_factor;
+		// Queue grid
+		draw_grid(queue_grid, x_pos, board_y, cell_width, true, renderer);
 
 		// Stats
 		int stats_board_padding = 10 * scale_factor;
