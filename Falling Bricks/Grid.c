@@ -39,7 +39,7 @@ static bool is_near_height_limit(Grid* grid) {
 	return false;
 }
 
-Grid* create_grid(int width, int height, bool show_lines, bool is_game_baord) {
+Grid* create_grid(int width, int height, bool show_lines, bool is_game_board) {
 	Grid* grid = malloc(sizeof(Grid));
 	if (!grid) {
 		fprintf(stderr, "Error: Failed to allocate memory for Grid\n");
@@ -53,7 +53,7 @@ Grid* create_grid(int width, int height, bool show_lines, bool is_game_baord) {
 	grid->width = width;
 	grid->height = height;
 	grid->show_grid_lines = show_lines;
-	grid->is_game_board = is_game_baord;
+	grid->is_game_board = is_game_board;
 
 	if (!allocate_cells(grid)) {
 		return NULL;
@@ -214,7 +214,7 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 		SDL_RenderFillRect(renderer, &right_border);
 	}
 
-	bool heigh_warning = grid->is_game_board && is_near_height_limit(grid);
+	bool height_warning = grid->is_game_board && is_near_height_limit(grid);
 
 	for (int i = 0; i < grid->height; i++) {
 		for (int j = 0; j < grid->width; j++) {
@@ -224,7 +224,7 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 				cell_width,
 				cell_width
 			};
-			if (i < 2 && heigh_warning) {
+			if (i < 2 && height_warning) {
 				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 128);
 				SDL_RenderFillRect(renderer, &cell_rect);
 			}
