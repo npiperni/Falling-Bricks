@@ -51,6 +51,7 @@ void handle_title_menu_events(struct TitleMenu* menu, SDL_Event event) {
 
 void destroy_title_menu(struct TitleMenu* menu) {
 	if (!menu) return;
+	SDL_DestroyTexture(menu->title_texture);
 	for (int i = 0; i < 4; i++) {
 		destroy_button(menu->buttons[i]);
 	}
