@@ -128,7 +128,7 @@ static void mark_shadow_predictions(Grid* grid, Piece* piece) {
 static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock) {
 	int row = piece->row_pos;
 	int col = piece->col_pos;
-	if (!validate_grid_position(grid, row, col)) {
+	if (!validate_piece_at_position(grid, piece, row, col)) {
 		return false; // Don't even bother attempting to drop if its current position is invalid. Can cause problems.
 	}
 	for (int i = 0; i <= grid->height - row; i++) {
