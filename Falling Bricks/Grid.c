@@ -210,10 +210,9 @@ void clear_grid(Grid* grid) {
 	clear_dynamic_array(grid->locked_pieces);
 }
 
-void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer) {
-	int border_width = 4;
+void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, int border_width, SDL_Renderer* renderer) {
 
-	if (border) {
+	if (border_width) {
 		SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
 		// Draw a border around the grid, use the outline code below
 		SDL_Rect top_border = { origin_x, origin_y, grid->width * cell_width + border_width * 2, border_width };

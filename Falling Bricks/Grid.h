@@ -41,7 +41,7 @@ void clear_unlocked_cells(Grid* grid);
 
 void clear_grid(Grid* grid);
 
-void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer);
+void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, int border_width, SDL_Renderer* renderer);
 
 int check_and_mark_full_rows(Grid* grid);
 
