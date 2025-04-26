@@ -457,6 +457,41 @@ int check_and_mark_full_rows(Grid* grid) {
 	return cleared_rows;
 }
 
+// Handles the destruction of the original piece and insertions of the new pieces
+static void split_grid_piece(Grid* grid, Piece* piece, int local_row) {
+	Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
+	Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
+
+	top_half->row_pos = piece->row_pos;
+	top_half->col_pos = piece->col_pos;
+	bottom_half->row_pos = piece->row_pos + local_row + 1;
+	bottom_half->col_pos = piece->col_pos;
+
+	// Reassign grid cell pointers to the new pieces
+	for (int r = 0; r < top_half->height; r++) {
+		for (int c = 0; c < top_half->width; c++) {
+			if (top_half->shape[r * top_half->width + c]) {
+				grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
+			}
+		}
+	}
+
+	for (int r = 0; r < bottom_half->height; r++) {
+		for (int c = 0; c < bottom_half->width; c++) {
+			if (bottom_half->shape[r * bottom_half->width + c]) {
+				grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
+			}
+		}
+	}
+
+	add_to_dynamic_array(grid->locked_pieces, top_half);
+	add_to_dynamic_array(grid->locked_pieces, bottom_half);
+
+	// Remove old piece from tracking
+	remove_from_dynamic_array(grid->locked_pieces, piece);
+	destroy_piece(piece);
+}
+
 void clear_full_rows(Grid* grid) {
 	for (int row = 0; row < grid->height; row++) {
 		if (grid->full_rows[row]) {
@@ -511,40 +546,7 @@ void clear_full_rows(Grid* grid) {
 				// Piece is split! Create two new pieces
 				Piece* piece = get_from_dynamic_array(pieces_to_split, j);
 				int local_row = row - piece->row_pos;
-				Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
-				Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
-
-				top_half->color = (SDL_Color){ 60, 128, 60, SDL_ALPHA_OPAQUE };
-				bottom_half->color = (SDL_Color){ 128, 60, 128, SDL_ALPHA_OPAQUE };
-
-				top_half->row_pos = piece->row_pos;
-				top_half->col_pos = piece->col_pos;
-				bottom_half->row_pos = piece->row_pos + local_row + 1;
-				bottom_half->col_pos = piece->col_pos;
-
-				// Reassign grid cell pointers to the new pieces
-				for (int r = 0; r < top_half->height; r++) {
-					for (int c = 0; c < top_half->width; c++) {
-						if (top_half->shape[r * top_half->width + c]) {
-							grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
-						}
-					}
-				}
-
-				for (int r = 0; r < bottom_half->height; r++) {
-					for (int c = 0; c < bottom_half->width; c++) {
-						if (bottom_half->shape[r * bottom_half->width + c]) {
-							grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
-						}
-					}
-				}
-
-				add_to_dynamic_array(grid->locked_pieces, top_half);
-				add_to_dynamic_array(grid->locked_pieces, bottom_half);
-
-				// Remove old piece from tracking
-				remove_from_dynamic_array(grid->locked_pieces, piece);
-				destroy_piece(piece);
+				split_grid_piece(grid, piece, local_row); // Handles the destruction of the original piece and insertions of the new pieces
 			}
 			destroy_dynamic_array(pieces_to_split);
 
