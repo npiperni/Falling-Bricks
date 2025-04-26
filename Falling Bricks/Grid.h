@@ -18,6 +18,8 @@ typedef struct {
 	int height;
 	bool show_grid_lines;
 	bool is_game_board;
+	bool* full_rows;
+	Uint32 fade_start_time;
 	DynamicArray* locked_pieces;
 } Grid;
 
@@ -41,6 +43,8 @@ void clear_grid(Grid* grid);
 
 void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer);
 
-int check_and_clear_full_rows(Grid* grid);
+int check_and_mark_full_rows(Grid* grid);
+
+void clear_full_rows(Grid* grid);
 
 void drop_all_pieces(Grid* grid);

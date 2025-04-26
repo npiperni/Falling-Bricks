@@ -22,5 +22,7 @@
 #define COUNTDOWN_DISPLAY_DURATION 1000 // 1 second
 #define LEVEL_UP_LABEL_DISPLAY_DURATION 2500 // 2.5 seconds
 
-#define BASE_DROP_SPEED 1000 // 1 second
+#define BASE_DROP_DELAY 1000 // 1 second
 #define BASE_LINES_PER_LEVEL 10
+
+#define ROW_CLEAR_TIME 700

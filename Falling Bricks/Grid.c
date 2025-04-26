@@ -1,6 +1,8 @@
 #include "Grid.h"
-#include <stdio.h>
+#include "Piece.h"
 #include "Constants.h"
+#include "AlphaFade.h"
+#include <stdio.h>
 
 static bool allocate_cells(Grid* grid);
 static void deallocate_cells(Cell** cells, int height);
@@ -47,6 +49,7 @@ Grid* create_grid(int width, int height, bool show_lines, bool is_game_board) {
 	}
 	grid->locked_pieces = create_dynamic_array(10, destroy_piece);
 	if (!grid->locked_pieces) {
+		fprintf(stderr, "Error: Failed to create dynamic array for locked pieces\n");
 		free(grid);
 		return NULL;
 	}
@@ -54,6 +57,14 @@ Grid* create_grid(int width, int height, bool show_lines, bool is_game_board) {
 	grid->height = height;
 	grid->show_grid_lines = show_lines;
 	grid->is_game_board = is_game_board;
+	grid->full_rows = calloc(height, sizeof(bool));
+	if (!grid->full_rows) {
+		fprintf(stderr, "Error: Failed to allocate memory for full rows\n");
+		destroy_dynamic_array(grid->locked_pieces);
+		free(grid);
+		return NULL;
+	}
+	grid->fade_start_time = 0;
 
 	if (!allocate_cells(grid)) {
 		return NULL;
@@ -66,6 +77,7 @@ void destroy_grid(Grid* grid) {
 	if (grid) {
 		deallocate_cells(grid->cells, grid->height);
 		destroy_dynamic_array(grid->locked_pieces);
+		free(grid->full_rows);
 		free(grid);
 	}
 }
@@ -234,17 +246,20 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 			}
 			Piece* piece = grid->cells[i][j].piece;
 			if (piece) {
-				SDL_SetRenderDrawColor(renderer, piece->color.r, piece->color.g, piece->color.b, piece->color.a);
+				Uint8 alpha = grid->full_rows[i] ? get_fade_alpha(grid->fade_start_time, ROW_CLEAR_TIME) : piece->color.a;
+				SDL_SetRenderDrawColor(renderer, piece->color.r, piece->color.g, piece->color.b, alpha);
 				SDL_RenderFillRect(renderer, &cell_rect);
+				
+				alpha /= 2;
 
 				// Draw shadow / outline around block to make it look 3D from far
-				SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
+				SDL_SetRenderDrawColor(renderer, 255, 255, 255, alpha);
 				SDL_Rect top_outline = { cell_rect.x, cell_rect.y, cell_width, cell_width / 8 };
 				SDL_Rect right_outline = { cell_rect.x + cell_width - cell_width / 8, cell_rect.y + cell_width / 8, cell_width / 8, cell_width - cell_width / 4 };
 				SDL_RenderFillRect(renderer, &top_outline);
 				SDL_RenderFillRect(renderer, &right_outline);
 
-				SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
+				SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
 				SDL_Rect bottom_outline = { cell_rect.x, cell_rect.y + cell_width - cell_width / 8, cell_width, cell_width / 8 };
 				SDL_Rect left_outline = { cell_rect.x, cell_rect.y + cell_width / 8, cell_width / 8, cell_width - cell_width / 4 };
 				SDL_RenderFillRect(renderer, &bottom_outline);
@@ -421,8 +436,7 @@ static void test_print_file(Grid* grid, const char* label, int index) {
 	fclose(file);
 }
 
-// Need to do a recursive check if dropping a piece causes a new row to be full
-int check_and_clear_full_rows(Grid* grid) {
+int check_and_mark_full_rows(Grid* grid) {
 	int cleared_rows = 0;
 	for (int row = 0; row < grid->height; row++) {
 		bool row_full = true;
@@ -433,6 +447,54 @@ int check_and_clear_full_rows(Grid* grid) {
 			}
 		}
 		if (row_full) {
+			// Mark the row as full
+			grid->full_rows[row] = 1;
+			cleared_rows++;
+		}
+	}
+	grid->fade_start_time = cleared_rows > 0 ? SDL_GetTicks() : 0; // Start the fade timer
+
+	return cleared_rows;
+}
+
+// Handles the destruction of the original piece and insertions of the new pieces
+static void split_grid_piece(Grid* grid, Piece* piece, int local_row) {
+	Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
+	Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
+
+	top_half->row_pos = piece->row_pos;
+	top_half->col_pos = piece->col_pos;
+	bottom_half->row_pos = piece->row_pos + local_row + 1;
+	bottom_half->col_pos = piece->col_pos;
+
+	// Reassign grid cell pointers to the new pieces
+	for (int r = 0; r < top_half->height; r++) {
+		for (int c = 0; c < top_half->width; c++) {
+			if (top_half->shape[r * top_half->width + c]) {
+				grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
+			}
+		}
+	}
+
+	for (int r = 0; r < bottom_half->height; r++) {
+		for (int c = 0; c < bottom_half->width; c++) {
+			if (bottom_half->shape[r * bottom_half->width + c]) {
+				grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
+			}
+		}
+	}
+
+	add_to_dynamic_array(grid->locked_pieces, top_half);
+	add_to_dynamic_array(grid->locked_pieces, bottom_half);
+
+	// Remove old piece from tracking
+	remove_from_dynamic_array(grid->locked_pieces, piece);
+	destroy_piece(piece);
+}
+
+void clear_full_rows(Grid* grid) {
+	for (int row = 0; row < grid->height; row++) {
+		if (grid->full_rows[row]) {
 			DynamicArray* pieces_to_split = create_dynamic_array(10, NULL);
 			// Clear the row
 			for (int col = 0; col < grid->width; col++) {
@@ -484,48 +546,14 @@ int check_and_clear_full_rows(Grid* grid) {
 				// Piece is split! Create two new pieces
 				Piece* piece = get_from_dynamic_array(pieces_to_split, j);
 				int local_row = row - piece->row_pos;
-				Piece* top_half = copy_piece_region(piece, 0, 0, local_row, piece->width);
-				Piece* bottom_half = copy_piece_region(piece, local_row + 1, 0, piece->height - local_row - 1, piece->width);
-
-				top_half->color = (SDL_Color){ 60, 128, 60, SDL_ALPHA_OPAQUE };
-				bottom_half->color = (SDL_Color){ 128, 60, 128, SDL_ALPHA_OPAQUE };
-
-				top_half->row_pos = piece->row_pos;
-				top_half->col_pos = piece->col_pos;
-				bottom_half->row_pos = piece->row_pos + local_row + 1;
-				bottom_half->col_pos = piece->col_pos;
-
-				// Reassign grid cell pointers to the new pieces
-				for (int r = 0; r < top_half->height; r++) {
-					for (int c = 0; c < top_half->width; c++) {
-						if (top_half->shape[r * top_half->width + c]) {
-							grid->cells[top_half->row_pos + r][piece->col_pos + c].piece = top_half;
-						}
-					}
-				}
-
-				for (int r = 0; r < bottom_half->height; r++) {
-					for (int c = 0; c < bottom_half->width; c++) {
-						if (bottom_half->shape[r * bottom_half->width + c]) {
-							grid->cells[bottom_half->row_pos + r][piece->col_pos + c].piece = bottom_half;
-						}
-					}
-				}
-
-				add_to_dynamic_array(grid->locked_pieces, top_half);
-				add_to_dynamic_array(grid->locked_pieces, bottom_half);
-
-				// Remove old piece from tracking
-				remove_from_dynamic_array(grid->locked_pieces, piece);
-				destroy_piece(piece);
+				split_grid_piece(grid, piece, local_row); // Handles the destruction of the original piece and insertions of the new pieces
 			}
 			destroy_dynamic_array(pieces_to_split);
-			cleared_rows++;
+
+			grid->full_rows[row] = 0;
 		}
 	}
-
 	remove_empty_pieces(grid);
-	return cleared_rows;
 }
 
 static void clear_piece_pointers(Grid* grid, Piece* piece) {

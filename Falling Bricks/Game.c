@@ -11,6 +11,7 @@
 #include "DynamicArray.h"
 #include "Menu.h"
 #include "Label.h"
+#include "AlphaFade.h"
 #include "LevelBar.h"
 #include "ResolutionContext.h"
 #include "Game.h"
@@ -58,15 +59,15 @@ struct Game {
 	int level;
 	int lines_cleared_this_level;
 	Uint32 start_time;
-	Uint32 pause_start_time;
-	Uint32 total_paused_time;
+	Uint32 row_clear_start_time;
+	Uint32 total_row_clear_time;
 	Uint32 elapsed_time;
 	int current_lines_cleared;
 	char main_label[20];
 	Uint32 label_display_start_time;
 	Uint32 level_up_label_display_start_time;
 	int countdown;
-	Uint32 drop_speed;
+	Uint32 drop_delay;
 	int required_lines_level_up;
 } game = { 0 };
 
@@ -77,7 +78,7 @@ struct Flags {
 	bool rotate_player;
 	bool drop_player;
 	bool pause;
-	bool clearing_rows;
+	bool check_full_rows;
 	bool dropping_pieces;
 } flags = { 0 };
 
@@ -106,7 +107,7 @@ static void dequeue_next_player_piece() {
 }
 
 static void update_drop_speed() {
-	game.drop_speed = MAX(100, BASE_DROP_SPEED * pow(0.93, (game.level - 1)));
+	game.drop_delay = MAX(100, BASE_DROP_DELAY * pow(0.93, (game.level - 1)));
 }
 
 static void update_level() {
@@ -152,9 +153,9 @@ void prepare_game() {
 	game.total_lines_cleared = 0;
 	game.lines_cleared_this_level = 0;
 	game.elapsed_time = 0;
-	game.total_paused_time = 0;
+	game.total_row_clear_time = 0;
 	game.countdown = 3;
-	game.drop_speed = BASE_DROP_SPEED;
+	game.drop_delay = BASE_DROP_DELAY;
 	game.required_lines_level_up = BASE_LINES_PER_LEVEL;
 	game.level_up_label_display_start_time = SDL_GetTicks() - LEVEL_UP_LABEL_DISPLAY_DURATION; // Sets it to the past so that it doesn't show up at the start of the game
 	game.current_state = GAME_STATE_COUNTDOWN;
@@ -186,7 +187,7 @@ void main_menu() {
 
 void game_over() {
 	game.current_state = GAME_OVER_MENU;
-	flags.clearing_rows = false;
+	flags.check_full_rows = false;
 	flags.dropping_pieces = false;
 	flags.move_player_down = false;
 	flags.move_player_left = false;
@@ -374,12 +375,12 @@ void update() {
 
 	if (game.current_state == GAME_STATE_PLAYING) {
 		update_level();
-		if (flags.clearing_rows) {
+		if (flags.check_full_rows) {
 			// Check for full rows
-			game.current_lines_cleared = check_and_clear_full_rows(game_board);
+			game.current_lines_cleared = check_and_mark_full_rows(game_board);
 			if (game.current_lines_cleared > 0) {
 				flags.dropping_pieces = true;
-				game.pause_start_time = SDL_GetTicks();
+				game.row_clear_start_time = SDL_GetTicks();
 				game.total_lines_cleared += game.current_lines_cleared;
 				game.lines_cleared_this_level += game.current_lines_cleared;
 				calculate_score();
@@ -387,21 +388,22 @@ void update() {
 				snprintf(game.main_label, sizeof(game.main_label), "%s", label);
 				game.label_display_start_time = SDL_GetTicks();
 			}
-			flags.clearing_rows = false;
+			flags.check_full_rows = false;
 			return;
 		}
 		if (flags.dropping_pieces) {
-			if (SDL_GetTicks() - game.pause_start_time >= 700) {
+			if (SDL_GetTicks() - game.row_clear_start_time >= ROW_CLEAR_TIME) {
+				clear_full_rows(game_board);
 				drop_all_pieces(game_board);
-				game.total_paused_time += SDL_GetTicks() - game.pause_start_time;
+				game.total_row_clear_time += SDL_GetTicks() - game.row_clear_start_time;
 				last_drop_time = SDL_GetTicks();
 				flags.dropping_pieces = false;
 				// Check for full rows again
-				flags.clearing_rows = true;
+				flags.check_full_rows = true;
 			}
 			return;
 		}
-		game.elapsed_time = SDL_GetTicks() - game.start_time - game.total_paused_time;
+		game.elapsed_time = SDL_GetTicks() - game.start_time - game.total_row_clear_time;
 		bool time_up = game.current_mode == BLITZ && game.elapsed_time > BLITZ_TIME;
 		bool reached_line_limit = game.current_mode == FOURTY_LINES && game.total_lines_cleared >= 40;
 		if ( time_up || reached_line_limit) {
@@ -415,7 +417,7 @@ void update() {
 			dequeue_next_player_piece();
 		}
 
-		if (SDL_GetTicks() - last_drop_time >= game.drop_speed) {
+		if (SDL_GetTicks() - last_drop_time >= game.drop_delay) {
 			last_drop_time = SDL_GetTicks();
 			flags.move_player_down = true;
 		}
@@ -460,7 +462,7 @@ void update() {
 			destroy_piece(player_piece);
 			player_piece = NULL;
 			// Check for full rows on next iteration
-			flags.clearing_rows = true;
+			flags.check_full_rows = true;
 		}
 	}
 }

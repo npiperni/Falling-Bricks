@@ -30,5 +30,3 @@ LabelStyle default_label_style_no_font();
 void time_formater(char* mins_secs_buffer, char* millis_buffer, size_t size_of_buffers, Uint32 time_in_ms);
 
 const char* get_row_clear_label(int rows);
-
-Uint8 get_fade_alpha(Uint32 start_time, Uint32 duration);
