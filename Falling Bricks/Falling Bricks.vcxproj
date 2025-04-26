@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AlphaFade.c" />
     <ClCompile Include="Button.c" />
     <ClCompile Include="Game.c" />
     <ClCompile Include="Grid.c" />
@@ -146,6 +147,7 @@
     <ClCompile Include="ResolutionContext.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AlphaFade.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Grid.h" />
