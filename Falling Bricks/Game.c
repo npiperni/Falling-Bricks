@@ -65,6 +65,7 @@ struct Game {
 	char main_label[20];
 	Uint32 label_display_start_time;
 	Uint32 level_up_label_display_start_time;
+	Uint32 combo_label_display_start_time;
 	int countdown;
 	Uint32 drop_delay;
 	int required_lines_level_up;
@@ -79,6 +80,7 @@ struct Flags {
 	bool pause;
 	bool check_full_rows;
 	bool dropping_pieces;
+	bool combo;
 } flags = { 0 };
 
 static Piece* create_random_piece() {
@@ -119,7 +121,7 @@ static void update_level() {
 }
 
 static void calculate_score() {
-	game.score += game.current_lines_cleared * 10 * game.current_lines_cleared * game.level;
+	game.score += game.current_lines_cleared * BASE_LINE_SCORE * game.current_lines_cleared * game.level * (flags.combo ? COMBO_MULTIPLIER : 1);
 }
 
 static void screenshot_debug() {
@@ -156,6 +158,7 @@ void prepare_game() {
 	game.drop_delay = BASE_DROP_DELAY;
 	game.required_lines_level_up = BASE_LINES_PER_LEVEL;
 	game.level_up_label_display_start_time = SDL_GetTicks() - LEVEL_UP_LABEL_DISPLAY_DURATION; // Prevents showing the label at start of game
+	game.combo_label_display_start_time = SDL_GetTicks() - COMBO_LABEL_DISPLAY_DURATION; // Prevents showing the label at start of game
 	game.current_state = GAME_STATE_COUNTDOWN;
 }
 
@@ -387,7 +390,9 @@ void update() {
 				char* label = get_row_clear_label(game.current_lines_cleared);
 				snprintf(game.main_label, sizeof(game.main_label), "%s", label);
 				game.label_display_start_time = time_now;
+				game.combo_label_display_start_time = flags.combo ? time_now : 0;
 			}
+			flags.combo = false;
 			flags.check_full_rows = false;
 			return;
 		}
@@ -400,6 +405,7 @@ void update() {
 				flags.dropping_pieces = false;
 				// Check for full rows again
 				flags.check_full_rows = true;
+				flags.combo = true;
 			}
 			return;
 		}
@@ -570,6 +576,11 @@ void render(SDL_Renderer* renderer) {
 		}
 		stats_y -= draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, game.main_label, label_style).h + stats_vertical_offset;
 		
+		// Combo label
+		label_style.color = (SDL_Color){ 0, 255, 0, 255 };
+		label_style.color.a = get_fade_alpha(game.combo_label_display_start_time, COMBO_LABEL_DISPLAY_DURATION);
+		stats_y -= draw_label(renderer, stats_x - stats_board_padding, stats_y - stats_vertical_offset, "GRAVITY COMBO!", label_style).h + stats_vertical_offset;
+
 		// Level up label
 		label_style.color = (SDL_Color){ 233, 200, 0, 255 };
 		label_style.color.a = get_fade_alpha(game.level_up_label_display_start_time, LEVEL_UP_LABEL_DISPLAY_DURATION);
