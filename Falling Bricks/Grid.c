@@ -249,7 +249,7 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, int borde
 				SDL_SetRenderDrawColor(renderer, piece->color.r, piece->color.g, piece->color.b, alpha);
 				SDL_RenderFillRect(renderer, &cell_rect);
 				
-				alpha /= 2;
+				alpha >>= 1; // Shift bits once to the right to get half the value. Fast division using the power of C!
 
 				// Draw shadow / outline around block to make it look 3D from far
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, alpha);

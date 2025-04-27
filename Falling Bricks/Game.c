@@ -112,7 +112,7 @@ static void update_drop_speed() {
 static void update_level() {
 	if (game.lines_cleared_this_level >= game.required_lines_level_up) {
 		game.lines_cleared_this_level -= game.required_lines_level_up; // Reset lines cleared this level and carry over the rest to next level
-		game.required_lines_level_up = BASE_LINES_PER_LEVEL * pow(1.15, game.level++); // Increase the number of lines needed for next level, then increment level
+		game.required_lines_level_up = BASE_LINES_PER_LEVEL * pow(1.1, game.level++); // Increase the number of lines needed for next level, then increment level
 		game.level_up_label_display_start_time = SDL_GetTicks();
 		update_drop_speed();
 	}
@@ -246,7 +246,7 @@ bool setup() {
 
 	next_pieces = create_queue(destroy_piece);
 
-	if (!game_board || !title_menu || !game_over_menu)
+	if (!game_board || !queue_grid || !title_menu || !game_over_menu)
 	{
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
