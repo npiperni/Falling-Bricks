@@ -210,10 +210,9 @@ void clear_grid(Grid* grid) {
 	clear_dynamic_array(grid->locked_pieces);
 }
 
-void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool border, SDL_Renderer* renderer) {
-	int border_width = 4;
+void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, int border_width, SDL_Renderer* renderer) {
 
-	if (border) {
+	if (border_width) {
 		SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
 		// Draw a border around the grid, use the outline code below
 		SDL_Rect top_border = { origin_x, origin_y, grid->width * cell_width + border_width * 2, border_width };
@@ -250,7 +249,7 @@ void draw_grid(Grid* grid, int origin_x, int origin_y, int cell_width, bool bord
 				SDL_SetRenderDrawColor(renderer, piece->color.r, piece->color.g, piece->color.b, alpha);
 				SDL_RenderFillRect(renderer, &cell_rect);
 				
-				alpha /= 2;
+				alpha >>= 1; // Shift bits once to the right to get half the value. Fast division using the power of C!
 
 				// Draw shadow / outline around block to make it look 3D from far
 				SDL_SetRenderDrawColor(renderer, 255, 255, 255, alpha);

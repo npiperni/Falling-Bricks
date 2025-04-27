@@ -1,8 +1,7 @@
 #include "LevelBar.h"
 #include <SDL.h>
 
-void draw_level_bar(SDL_Renderer* renderer, int x, int y, int w, int h, int lines, int goal) {
-	int border_width = 4;
+void draw_level_bar(SDL_Renderer* renderer, int x, int y, int w, int h, int border_width, int lines, int goal) {
 	SDL_SetRenderDrawColor(renderer, 128, 128, 128, SDL_ALPHA_OPAQUE);
 	SDL_Rect top_border = { x, y, w + border_width * 2, border_width };
 	SDL_Rect bottom_border = { x, y + h + border_width, w + border_width * 2, border_width };
