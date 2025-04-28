@@ -112,7 +112,7 @@ Piece* create_piece(enum PieceType type) {
 	return piece;
 }
 
-Piece* rotate_piece(const Piece* piece) {
+Piece* rotate_piece(const Piece* piece, bool clockwise) {
 	Piece* rotated_piece = malloc(sizeof(Piece));
 
 	if (!rotated_piece) {
@@ -130,7 +130,9 @@ Piece* rotate_piece(const Piece* piece) {
 
 	for (int i = 0; i < new_width; i++) {
 		for (int j = 0; j < new_height; j++) {
-			rotated_piece->shape[j * new_width + (new_width - 1 - i)] = piece->shape[i * piece->width + j];
+			int col = clockwise ? new_width - 1 - i : i; // clockwise or counter-clockwise. In other words, start from the last col or first col
+			int row = clockwise ? j : new_height - 1 - j; // clockwise or counter-clockwise. In other words, start from the first row or last row
+			rotated_piece->shape[row * new_width + col] = piece->shape[i * piece->width + j];
 			// shape[j][new_width - 1 - i] = piece->shape[i][j];
 		}
 	}

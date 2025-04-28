@@ -153,8 +153,8 @@ static bool drop_piece_on_grid(Grid* grid, Piece* piece, bool lock) {
 }
 
 // Also returns new row and column position for center rotation
-Piece* try_rotate_piece(Grid* grid, Piece* piece) {
-	Piece* rotated_piece = rotate_piece(piece);
+Piece* try_rotate_piece(Grid* grid, Piece* piece, bool clockwise) {
+	Piece* rotated_piece = rotate_piece(piece, clockwise);
 	if (!rotated_piece) {
 		return NULL;
 	}
