@@ -35,7 +35,7 @@ bool add_piece_to_grid(Grid* grid, Piece* piece, bool lock, bool drop);
 
 void mark_x_cells(Grid* grid, Piece* piece);
 
-Piece* try_rotate_piece(Grid* grid, Piece* piece);
+Piece* try_rotate_piece(Grid* grid, Piece* piece, bool clockwise);
 
 void clear_unlocked_cells(Grid* grid);
 

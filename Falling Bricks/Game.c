@@ -76,6 +76,7 @@ struct Flags {
 	bool move_player_left;
 	bool move_player_right;
 	bool rotate_player;
+	bool clockwise_rotation;
 	bool drop_player;
 	bool pause;
 	bool check_full_rows;
@@ -313,8 +314,13 @@ void process_input(bool* running) {
 		else if (key == SDLK_p) {
 			flags.pause = !flags.pause;
 		}
-		else if (key == SDLK_UP) {
+		else if (key == SDLK_UP || key == SDLK_x) {
 			flags.rotate_player = true;
+			flags.clockwise_rotation = true;
+		}
+		else if (key == SDLK_z) {
+			flags.rotate_player = true;
+			flags.clockwise_rotation = false;
 		}
 		else if (key == SDLK_DOWN) {
 			flags.move_player_down = true;
@@ -437,7 +443,7 @@ void update() {
 			flags.move_player_right = false;
 		}
 		if (flags.rotate_player) {
-			Piece* rotated_piece = try_rotate_piece(game_board, player_piece);
+			Piece* rotated_piece = try_rotate_piece(game_board, player_piece, flags.clockwise_rotation);
 			if (rotated_piece) {
 				destroy_piece(player_piece);
 				// Update to rotated piece and new position after rotation
