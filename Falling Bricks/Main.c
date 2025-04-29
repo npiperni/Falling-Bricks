@@ -94,7 +94,13 @@ int main(int argc, char* args[]) {
 	SDL_Window* window = NULL;
 	SDL_Renderer* renderer = NULL;
 
-	bool game_is_running = init_window(&window, &renderer) && load_fonts() && setup();
+	if (!load_fonts()) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MISSING FONTS", "Failed to load required fonts.", 0);
+		free_fonts();
+		return EXIT_FAILURE;
+	}
+
+	bool game_is_running = init_window(&window, &renderer) && setup();
 
 	while (game_is_running) {
 		process_input(&game_is_running);
@@ -108,5 +114,5 @@ int main(int argc, char* args[]) {
 
 	free_fonts();
 
-	return 0;
+	return EXIT_SUCCESS;
 }
