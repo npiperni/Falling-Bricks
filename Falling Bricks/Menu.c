@@ -157,7 +157,7 @@ struct GameOverMenu* create_game_over_menu(ButtonCallback on_click[2], TTF_Font*
 	int button_width = 200;
 	int button_height = 50;
 	int button_x = 100;
-	int button_y = (WINDOW_HEIGHT - button_height) / 2;
+	int button_y = (WINDOW_HEIGHT - button_height) / 2 - 100;
 	menu->buttons[0] = create_button(button_x, button_y + 100, button_width, button_height, button_color, on_click[0], "Menu", button_font);
 	menu->buttons[1] = create_button(button_x, button_y + 200, button_width, button_height, button_color, on_click[1], "Quit", button_font);
 	menu->res_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
