@@ -84,11 +84,6 @@ struct Flags {
 	bool combo;
 } flags = { 0 };
 
-static Piece* create_random_piece() {
-	int random_piece = rand() % 7;
-	return create_piece(random_piece);
-}
-
 static void dequeue_next_player_piece() {
 	destroy_piece(player_piece);
 	player_piece = dequeue(next_pieces);
@@ -341,8 +336,6 @@ void process_input(bool* running) {
 void update() {
 	Uint32 time_now = SDL_GetTicks();
 
-	//while (!SDL_TICKS_PASSED(SDL_GetTicks(), last_frame_time + FRAME_TARGET_TIME));
-
 	int time_to_wait = FRAME_TARGET_TIME - (time_now - last_frame_time);
 
 	if (time_to_wait > 0 && time_to_wait <= FRAME_TARGET_TIME) {
@@ -352,19 +345,10 @@ void update() {
 	float delta_time = (time_now - last_frame_time) / 1000.0f;
 	last_frame_time = time_now;
 
-	// Debug, should remove later
-	//if (flags.pause) {
-	//	return;
-	//}
-
-	//int current_width, current_height;
-	//SDL_GetWindowSize(window, &current_width, &current_height);
-	//scale_factor = MIN((float)current_width / WINDOW_WIDTH, (float)current_height / WINDOW_HEIGHT);
-	//printf("%f\n", scale_factor);
-	//int displayIndex = SDL_GetWindowDisplayIndex(window);
-	//SDL_DisplayMode display_mode;
-	//SDL_GetCurrentDisplayMode(displayIndex, &display_mode);
-	//printf("%d %d\n", display_mode.w, display_mode.h);
+	if (game.current_state == GAME_STATE_MENU) {
+		update_grid_positions(title_menu, delta_time);
+		return;
+	}
 
 	bool lock_piece = false;
 	bool drop_player = false;
