@@ -60,7 +60,7 @@ static void create_grid_piece(struct TitleMenu* menu) {
 	menu->floating_grid_creation_time = SDL_GetTicks();
 }
 
-static draw_piece_grids(struct TitleMenu* menu, SDL_Renderer* renderer) {
+static void draw_piece_grids(struct TitleMenu* menu, SDL_Renderer* renderer) {
 	for (int i = 0; i < menu->floating_grids->size; i++) {
 		Grid* grid = get_from_dynamic_array(menu->floating_grids, i);
 		SDL_FPoint* position = get_from_dynamic_array(menu->grid_positions, i);
