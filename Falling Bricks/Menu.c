@@ -104,7 +104,7 @@ struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* title_
 
 void draw_title_menu(struct TitleMenu* menu, SDL_Renderer* renderer) {
 	draw_piece_grids(menu, renderer);
-	SDL_Rect title_rect = { (WINDOW_WIDTH - 600) / 2, 50, 600, 100 };
+	SDL_Rect title_rect = { (WINDOW_WIDTH - 750) / 2, 50, 750, 125 };
 	ResolutionContext context = menu->res_context;
 	title_rect.x = title_rect.x * context.scale_factor + context.x_offset;
 	title_rect.y = title_rect.y * context.scale_factor + context.y_offset;
