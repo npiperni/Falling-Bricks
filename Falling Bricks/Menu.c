@@ -3,7 +3,6 @@
 #include "Constants.h"
 #include "ResolutionContext.h"
 #include "Grid.h"
-#include "Grid.h"
 #include "Piece.h"
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -132,12 +131,12 @@ void update_grid_positions(struct TitleMenu* menu, float delta_time) {
 			Grid* grid = get_from_dynamic_array(menu->floating_grids, i);
 			remove_from_dynamic_array(menu->floating_grids, grid);
 			destroy_grid(grid);
+			i--;
 		}
-
-		if (SDL_GetTicks() - menu->floating_grid_creation_time > BLOCK_INTERVAL) {
-			create_grid_piece(menu);
-			menu->floating_grid_creation_time = SDL_GetTicks();
-		}
+	}
+	if (SDL_GetTicks() - menu->floating_grid_creation_time > BLOCK_INTERVAL) {
+		create_grid_piece(menu);
+		menu->floating_grid_creation_time = SDL_GetTicks();
 	}
 }
 
