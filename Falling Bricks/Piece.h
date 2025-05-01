@@ -26,6 +26,8 @@ typedef struct {
 
 Piece* create_piece(enum PieceType type);
 
+Piece* create_random_piece();
+
 Piece* rotate_piece(const Piece* piece, bool clockwise);
 
 bool is_piece_empty(const Piece* piece);

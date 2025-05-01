@@ -1,5 +1,6 @@
 #include "Piece.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 static bool calloc_failed(bool* shape);
 
@@ -110,6 +111,11 @@ Piece* create_piece(enum PieceType type) {
 		return NULL;
 	}
 	return piece;
+}
+
+Piece* create_random_piece() {
+	int random_piece = rand() % 7;
+	return create_piece(random_piece);
 }
 
 Piece* rotate_piece(const Piece* piece, bool clockwise) {
