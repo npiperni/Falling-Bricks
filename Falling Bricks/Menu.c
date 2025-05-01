@@ -41,7 +41,18 @@ static void create_grid_piece(struct TitleMenu* menu) {
 	add_to_dynamic_array(menu->grid_positions, position); // Position now belongs to dynamic array. Do not free it here.
 	destroy_piece(piece);
 
-	position->x = rand() % (WINDOW_WIDTH - floating_grid->width * CELL_SIZE);
+	// Calculate x position for piece. Chose random position with a bias towards edges
+	float random = (float)rand() / RAND_MAX;
+	if (random <= 0.5f) {
+		// Bias towards the left edge
+		random = -sqrtf(0.25f - powf(random, 2)) + 0.5f;
+	}
+	else {
+		// Bias towards the right edge
+		random = sqrtf(0.25f - powf(random - 1, 2)) + 0.5f;
+	}
+
+	position->x = random * (WINDOW_WIDTH - floating_grid->width * CELL_SIZE);
 
 	// Spawn piece at top of actual window height (local_y = (absolute_y - y_offset) / scale where absolute_y is 0 for top). This will get scaled properly during drawing
 	position->y = -menu->res_context.y_offset / menu->res_context.scale_factor;
