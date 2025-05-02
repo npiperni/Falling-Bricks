@@ -136,6 +136,7 @@ void start_game() {
 	game.last_player_drop_time = game.start_time = SDL_GetTicks();
 	game.current_state = GAME_STATE_PLAYING;
 	dequeue_next_player_piece();
+	play_random_music(audio_context);
 }
 
 void prepare_game() {
@@ -186,8 +187,6 @@ void main_menu() {
 }
 
 void game_over() {
-	Mix_HaltChannel(-1); // Stop channel so we can play the game over sound if anything else is playing
-	Mix_PlayChannel(-1, audio_context->game_over, 0);
 	game.current_state = GAME_OVER_MENU;
 	flags.check_full_rows = false;
 	flags.dropping_pieces = false;
@@ -197,10 +196,19 @@ void game_over() {
 	flags.rotate_player = false;
 	flags.drop_player = false;
 	snprintf(game.main_label, sizeof(game.main_label), "GAME OVER!");
+	Mix_HaltMusic();
+	Mix_HaltChannel(-1); // Stop all channels so we can play the game over sound if anything else is playing
+	Mix_PlayChannel(-1, audio_context->game_over, 0);
 }
 
 void send_quit() {
 	SDL_PushEvent(&(SDL_Event) { .type = SDL_QUIT });
+}
+
+void play_next_music() {
+	if (game.current_state == GAME_STATE_PLAYING) {
+		play_random_music(audio_context);
+	}
 }
 
 static bool move_player_left() {
@@ -230,6 +238,7 @@ static bool move_player_down() {
 bool setup() {
 
 	audio_context = create_audio_context();
+	Mix_HookMusicFinished(play_next_music);
 
 	resolution_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
 

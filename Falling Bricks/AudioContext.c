@@ -1,5 +1,6 @@
 #include "AudioContext.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <SDL_mixer.h>
 
 AudioContext* create_audio_context() {
@@ -40,6 +41,15 @@ AudioContext* create_audio_context() {
 	}
 
 	return audio_context;
+}
+
+void play_random_music(AudioContext* audio_context) {
+	if (audio_context) {
+		int random_index = rand() % NUM_SONGS;
+		if (Mix_PlayMusic(audio_context->music[random_index], 0) == -1) {
+			fprintf(stderr, "Error playing music: %s\n", Mix_GetError());
+		}
+	}
 }
 
 void destroy_audio_context(AudioContext* audio_context) {

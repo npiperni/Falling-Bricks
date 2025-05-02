@@ -13,4 +13,6 @@ typedef struct {
 
 AudioContext* create_audio_context();
 
+void play_random_music(AudioContext* audio_context);
+
 void destroy_audio_context(AudioContext* audio_context);
