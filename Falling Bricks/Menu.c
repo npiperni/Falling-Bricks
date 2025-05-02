@@ -4,6 +4,7 @@
 #include "ResolutionContext.h"
 #include "Grid.h"
 #include "Piece.h"
+#include "FontContext.h"
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <stdlib.h>
@@ -71,7 +72,7 @@ static void draw_piece_grids(struct TitleMenu* menu, SDL_Renderer* renderer) {
 	}
 }
 
-struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* title_font, TTF_Font* button_font) {
+struct TitleMenu* create_title_menu(ButtonCallback on_click[4]) {
 	struct TitleMenu* menu = malloc(sizeof(struct TitleMenu));
 	if (!menu) {
 		fprintf(stderr, "Error: Failed to allocate memory for TitleMenu\n");
@@ -83,6 +84,10 @@ struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* title_
 		return NULL;
 	}
 	create_grid_piece(menu);
+
+	FontContext* font_context = get_font_context();
+	TTF_Font* title_font = font_context->title_font;
+	TTF_Font* button_font = font_context->button_font;
 
 	SDL_Color button_color = { 50, 50, 50, SDL_ALPHA_OPAQUE };
 	int button_width = 200;
@@ -157,12 +162,16 @@ void destroy_title_menu(struct TitleMenu* menu) {
 	free(menu);
 }
 
-struct GameOverMenu* create_game_over_menu(ButtonCallback on_click[2], TTF_Font* button_font) {
+struct GameOverMenu* create_game_over_menu(ButtonCallback on_click[2]) {
 	struct GameOverMenu* menu = malloc(sizeof(struct GameOverMenu));
 	if (!menu) {
 		fprintf(stderr, "Error: Failed to allocate memory for GameOverMenu\n");
 		return NULL;
 	}
+
+	FontContext* font_context = get_font_context();
+	TTF_Font* button_font = font_context->button_font;
+
 	SDL_Color button_color = { 50, 50, 50, SDL_ALPHA_OPAQUE };
 	int button_width = 200;
 	int button_height = 50;

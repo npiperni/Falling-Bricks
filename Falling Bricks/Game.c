@@ -16,17 +16,12 @@
 #include "LevelBar.h"
 #include "ResolutionContext.h"
 #include "AudioContext.h"
+#include "FontContext.h"
 #include "Game.h"
-
-extern TTF_Font* button_font;
-extern TTF_Font* title_font;
-extern TTF_Font* label_font;
-extern TTF_Font* label_font_small;
 
 int last_frame_time = 0;
 
 ResolutionContext resolution_context;
-AudioContext* audio_context = NULL;
 
 Piece* player_piece = NULL;
 Grid* game_board = NULL;
@@ -136,7 +131,7 @@ void start_game() {
 	game.last_player_drop_time = game.start_time = SDL_GetTicks();
 	game.current_state = GAME_STATE_PLAYING;
 	dequeue_next_player_piece();
-	play_random_music(audio_context);
+	play_random_music();
 }
 
 void prepare_game() {
@@ -198,7 +193,7 @@ void game_over() {
 	snprintf(game.main_label, sizeof(game.main_label), "GAME OVER!");
 	Mix_HaltMusic();
 	Mix_HaltChannel(-1); // Stop all channels so we can play the game over sound if anything else is playing
-	Mix_PlayChannel(-1, audio_context->game_over, 0);
+	Mix_PlayChannel(-1, get_audio_context()->game_over, 0);
 }
 
 void send_quit() {
@@ -207,7 +202,7 @@ void send_quit() {
 
 void play_next_music() {
 	if (game.current_state == GAME_STATE_PLAYING) {
-		play_random_music(audio_context);
+		play_random_music();
 	}
 }
 
@@ -236,10 +231,15 @@ static bool move_player_down() {
 }
 
 bool setup() {
+	if (!create_font_context()) {
+		fprintf(stderr, "Error: Failed to create font context\n");
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MISSING FONTS", "Failed to load required fonts.", 0);
+		return false;
+	}
 
-	audio_context = create_audio_context();
-	if (!audio_context) {
+	if (!create_audio_context()) {
 		fprintf(stderr, "Error: Failed to create audio context\n");
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MISSING AUDIO", "Failed to load required audio files.", 0);
 		return false;
 	}
 	Mix_HookMusicFinished(play_next_music);
@@ -251,12 +251,12 @@ bool setup() {
 		start_blitz,
 		start_endless,
 		send_quit
-	}, title_font, button_font);
+	});
 
 	game_over_menu = create_game_over_menu((ButtonCallback[]) {
 		main_menu,
 		send_quit
-	}, button_font);
+	});
 
 	game_board = create_grid(BOARD_WIDTH, BOARD_HEIGHT, true, true);
 
@@ -281,14 +281,14 @@ void cleanup() {
 	destroy_queue(next_pieces);
 	destroy_title_menu(title_menu);
 	destroy_game_over_menu(game_over_menu);
-	destroy_audio_context(audio_context);
+	destroy_audio_context();
+	destroy_font_context();
 	player_piece = NULL;
 	game_board = NULL;
 	queue_grid = NULL;
 	next_pieces = NULL;
 	title_menu = NULL;
 	game_over_menu = NULL;
-	audio_context = NULL;
 }
 
 void process_input(bool* running) {
@@ -302,10 +302,7 @@ void process_input(bool* running) {
 			resolution_context = get_resolution_context(window_width, window_height);
 			title_menu->res_context = resolution_context;
 			game_over_menu->res_context = resolution_context;
-			TTF_CloseFont(label_font);
-			label_font = TTF_OpenFont("PoltBold-V5aZ.otf", (int)(LABEL_DEFAULT_FONT_SIZE * resolution_context.scale_factor));
-			TTF_CloseFont(label_font_small);
-			label_font_small = TTF_OpenFont("Polt-AABM.otf", (int)(LABEL_DEFAULT_SMALL_FONT_SIZE * resolution_context.scale_factor));
+			adjust_label_font_size(resolution_context.scale_factor);
 		}	
 	}
 
@@ -387,6 +384,8 @@ void update() {
 		}
 		return;
 	}
+
+	AudioContext* audio_context = get_audio_context();
 
 	if (game.current_state == GAME_STATE_PLAYING) {
 		update_level();
@@ -507,6 +506,8 @@ void render(SDL_Renderer* renderer) {
 	// Still want to show the game board at end of game
 	if (game.current_state != GAME_STATE_MENU) {
 
+		FontContext* font_context = get_font_context();
+
 		float scale_factor = resolution_context.scale_factor;
 		int border_width = 4 * scale_factor;
 
@@ -538,14 +539,14 @@ void render(SDL_Renderer* renderer) {
 		int values[] = { game.score, game.level, game.total_lines_cleared, 0 };
 
 		LabelStyle label_style_small_font = default_label_style_no_font();
-		label_style_small_font.font = label_font_small;
+		label_style_small_font.font = font_context->label_font_small;
 
 		LabelStyle label_style_small_font_left = default_label_style_no_font();
-		label_style_small_font_left.font = label_font_small;
+		label_style_small_font_left.font = font_context->label_font_small;
 		label_style_small_font_left.align_right = false;
 
 		LabelStyle label_style_large_font = default_label_style_no_font();
-		label_style_large_font.font = label_font;
+		label_style_large_font.font = font_context->label_font;
 
 		// Easier to draw bottom to top in this case
 		for (int i = 3; i >= 0; i--) {
@@ -564,7 +565,7 @@ void render(SDL_Renderer* renderer) {
 					}
 				}
 				int small_label_w, _;
-				TTF_SizeText(label_font_small, ".000", &small_label_w, &_);
+				TTF_SizeText(font_context->label_font_small, ".000", &small_label_w, &_);
 				char mins_secs_buffer[100];
 				char millis_buffer[100];
 				time_formater(mins_secs_buffer, millis_buffer, sizeof(mins_secs_buffer), time_ms);
@@ -587,7 +588,7 @@ void render(SDL_Renderer* renderer) {
 
 		// Line clear and countdown label (used for both)
 		LabelStyle label_style = default_label_style_no_font();
-		label_style.font = label_font;
+		label_style.font = font_context->label_font;
 
 		if (game.current_state != GAME_OVER_MENU) {
 			int fade_duration = game.current_state == GAME_STATE_PLAYING ? ROW_LABEL_DISPLAY_DURATION : COUNTDOWN_DISPLAY_DURATION;

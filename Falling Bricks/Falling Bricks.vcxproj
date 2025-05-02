@@ -136,6 +136,7 @@
     <ClCompile Include="AlphaFade.c" />
     <ClCompile Include="AudioContext.c" />
     <ClCompile Include="Button.c" />
+    <ClCompile Include="FontContext.c" />
     <ClCompile Include="Game.c" />
     <ClCompile Include="Grid.c" />
     <ClCompile Include="LevelBar.c" />
@@ -151,6 +152,7 @@
     <ClInclude Include="AlphaFade.h" />
     <ClInclude Include="AudioContext.h" />
     <ClInclude Include="Button.h" />
+    <ClInclude Include="FontContext.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="Constants.h" />
