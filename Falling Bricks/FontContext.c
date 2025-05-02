@@ -26,6 +26,7 @@ bool create_font_context() {
 	font_context->label_font_small = TTF_OpenFont("Polt-AABM.otf", LABEL_DEFAULT_SMALL_FONT_SIZE);
 	if (!font_context->button_font || !font_context->title_font || !font_context->label_font || !font_context->label_font_small) {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+		destroy_font_context();
 		return false;
 	}
 	return true;
