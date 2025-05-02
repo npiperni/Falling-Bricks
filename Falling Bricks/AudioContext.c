@@ -40,14 +40,14 @@ bool create_audio_context() {
 	audio_context->game_over = Mix_LoadWAV("assets/audio/sounds/game_over.wav");
 	if (!audio_context->move_sound || !audio_context->lock_sound || !audio_context->clear_sound || !audio_context->game_over) {
 		fprintf(stderr, "Error loading sound file: %s\n", Mix_GetError());
-		destroy_audio_context(audio_context);
+		destroy_audio_context();
 		return false;
 	}
 
 	for (int i = 0; i < NUM_SONGS; i++) {
 		if (!audio_context->music[i]) {
 			fprintf(stderr, "Error loading audio file %d: %s\n", i, Mix_GetError());
-			destroy_audio_context(audio_context);
+			destroy_audio_context();
 			return false;
 		}
 	}
