@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL_mixer.h>
+#include <stdbool.h>
 
 #define NUM_SONGS 5
 
@@ -11,8 +12,10 @@ typedef struct {
 	Mix_Chunk* game_over;
 } AudioContext;
 
-AudioContext* create_audio_context();
+bool create_audio_context();
 
-void play_random_music(AudioContext* audio_context);
+AudioContext* get_audio_context();
 
-void destroy_audio_context(AudioContext* audio_context);
+void play_random_music();
+
+void destroy_audio_context();

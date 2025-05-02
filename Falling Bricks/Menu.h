@@ -21,7 +21,7 @@ struct GameOverMenu {
 	ResolutionContext res_context;
 };
 
-struct TitleMenu* create_title_menu(ButtonCallback on_click[4], TTF_Font* title_font, TTF_Font* button_font);
+struct TitleMenu* create_title_menu(ButtonCallback on_click[4]);
 
 void draw_title_menu(struct TitleMenu* menu, SDL_Renderer* renderer);
 
@@ -31,7 +31,7 @@ void handle_title_menu_events(struct TitleMenu* menu, SDL_Event event);
 
 void destroy_title_menu(struct TitleMenu* menu);
 
-struct GameOverMenu* create_game_over_menu(ButtonCallback on_click[2], TTF_Font* button_font);
+struct GameOverMenu* create_game_over_menu(ButtonCallback on_click[2]);
 
 void draw_game_over_menu(struct GameOverMenu* menu, SDL_Renderer* renderer);
 
