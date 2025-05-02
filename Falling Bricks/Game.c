@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,7 @@
 #include "AlphaFade.h"
 #include "LevelBar.h"
 #include "ResolutionContext.h"
+#include "AudioContext.h"
 #include "Game.h"
 
 extern TTF_Font* button_font;
@@ -24,6 +26,7 @@ extern TTF_Font* label_font_small;
 int last_frame_time = 0;
 
 ResolutionContext resolution_context;
+AudioContext* audio_context = NULL;
 
 Piece* player_piece = NULL;
 Grid* game_board = NULL;
@@ -183,6 +186,8 @@ void main_menu() {
 }
 
 void game_over() {
+	Mix_HaltChannel(-1); // Stop channel so we can play the game over sound if anything else is playing
+	Mix_PlayChannel(-1, audio_context->game_over, 0);
 	game.current_state = GAME_OVER_MENU;
 	flags.check_full_rows = false;
 	flags.dropping_pieces = false;
@@ -224,6 +229,8 @@ static bool move_player_down() {
 
 bool setup() {
 
+	audio_context = create_audio_context();
+
 	resolution_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	title_menu = create_title_menu((ButtonCallback[]) {
@@ -245,7 +252,7 @@ bool setup() {
 
 	next_pieces = create_queue(destroy_piece);
 
-	if (!game_board || !queue_grid || !title_menu || !game_over_menu)
+	if (!audio_context || !game_board || !queue_grid || !title_menu || !game_over_menu)
 	{
 		fprintf(stderr, "Fatal Error during setup\n"); 
 		return false;
@@ -261,12 +268,14 @@ void cleanup() {
 	destroy_queue(next_pieces);
 	destroy_title_menu(title_menu);
 	destroy_game_over_menu(game_over_menu);
+	destroy_audio_context(audio_context);
 	player_piece = NULL;
 	game_board = NULL;
 	queue_grid = NULL;
 	next_pieces = NULL;
 	title_menu = NULL;
 	game_over_menu = NULL;
+	audio_context = NULL;
 }
 
 void process_input(bool* running) {
@@ -381,6 +390,7 @@ void update() {
 				snprintf(game.main_label, sizeof(game.main_label), "%s", label);
 				game.label_display_start_time = time_now;
 				game.combo_label_display_start_time = flags.combo ? time_now : 0;
+				Mix_PlayChannel(-1, audio_context->clear_sound, 0);
 			}
 			flags.combo = false;
 			flags.check_full_rows = false;
@@ -419,11 +429,15 @@ void update() {
 		}
 
 		if (flags.move_player_left) {
-			move_player_left();
+			if (move_player_left()) {
+				Mix_PlayChannel(-1, audio_context->move_sound, 0);
+			}
 			flags.move_player_left = false;
 		}
 		if (flags.move_player_right) {
-			move_player_right();
+			if (move_player_right()) {
+				Mix_PlayChannel(-1, audio_context->move_sound, 0);
+			}
 			flags.move_player_right = false;
 		}
 		if (flags.rotate_player) {
@@ -432,6 +446,7 @@ void update() {
 				destroy_piece(player_piece);
 				// Update to rotated piece and new position after rotation
 				player_piece = rotated_piece;
+				Mix_PlayChannel(-1, audio_context->move_sound, 0);
 			}
 			flags.rotate_player = false;
 		}
@@ -459,6 +474,7 @@ void update() {
 			player_piece = NULL;
 			// Check for full rows on next iteration
 			flags.check_full_rows = true;
+			Mix_PlayChannel(-1, audio_context->lock_sound, 0);
 		}
 	}
 }
