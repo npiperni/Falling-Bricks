@@ -238,6 +238,10 @@ static bool move_player_down() {
 bool setup() {
 
 	audio_context = create_audio_context();
+	if (!audio_context) {
+		fprintf(stderr, "Error: Failed to create audio context\n");
+		return false;
+	}
 	Mix_HookMusicFinished(play_next_music);
 
 	resolution_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -261,9 +265,9 @@ bool setup() {
 
 	next_pieces = create_queue(destroy_piece);
 
-	if (!audio_context || !game_board || !queue_grid || !title_menu || !game_over_menu)
+	if (!game_board || !queue_grid || !title_menu || !game_over_menu)
 	{
-		fprintf(stderr, "Fatal Error during setup\n"); 
+		fprintf(stderr, "Fatal Error during game setup\n"); 
 		return false;
 	}
 	
