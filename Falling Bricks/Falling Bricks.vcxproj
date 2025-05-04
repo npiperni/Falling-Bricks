@@ -18,6 +18,38 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\AlphaFade.h" />
+    <ClInclude Include="include\AudioContext.h" />
+    <ClInclude Include="include\Button.h" />
+    <ClInclude Include="include\Constants.h" />
+    <ClInclude Include="include\DynamicArray.h" />
+    <ClInclude Include="include\FontContext.h" />
+    <ClInclude Include="include\Game.h" />
+    <ClInclude Include="include\Grid.h" />
+    <ClInclude Include="include\Label.h" />
+    <ClInclude Include="include\LevelBar.h" />
+    <ClInclude Include="include\Menu.h" />
+    <ClInclude Include="include\Piece.h" />
+    <ClInclude Include="include\Queue.h" />
+    <ClInclude Include="include\ResolutionContext.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\AlphaFade.c" />
+    <ClCompile Include="source\AudioContext.c" />
+    <ClCompile Include="source\Button.c" />
+    <ClCompile Include="source\DynamicArray.c" />
+    <ClCompile Include="source\FontContext.c" />
+    <ClCompile Include="source\Game.c" />
+    <ClCompile Include="source\Grid.c" />
+    <ClCompile Include="source\Label.c" />
+    <ClCompile Include="source\LevelBar.c" />
+    <ClCompile Include="source\Main.c" />
+    <ClCompile Include="source\Menu.c" />
+    <ClCompile Include="source\Piece.c" />
+    <ClCompile Include="source\Queue.c" />
+    <ClCompile Include="source\ResolutionContext.c" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -70,6 +102,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>D:\VSRepos\Falling Bricks\Falling Bricks\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>D:\VSRepos\Falling Bricks\Falling Bricks\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -132,38 +170,6 @@
       <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_ttf.lib;SDL2_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="AlphaFade.c" />
-    <ClCompile Include="AudioContext.c" />
-    <ClCompile Include="Button.c" />
-    <ClCompile Include="FontContext.c" />
-    <ClCompile Include="Game.c" />
-    <ClCompile Include="Grid.c" />
-    <ClCompile Include="LevelBar.c" />
-    <ClCompile Include="Main.c" />
-    <ClCompile Include="Menu.c" />
-    <ClCompile Include="Piece.c" />
-    <ClCompile Include="DynamicArray.c" />
-    <ClCompile Include="Queue.c" />
-    <ClCompile Include="Label.c" />
-    <ClCompile Include="ResolutionContext.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="AlphaFade.h" />
-    <ClInclude Include="AudioContext.h" />
-    <ClInclude Include="Button.h" />
-    <ClInclude Include="FontContext.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="Grid.h" />
-    <ClInclude Include="Constants.h" />
-    <ClInclude Include="LevelBar.h" />
-    <ClInclude Include="Menu.h" />
-    <ClInclude Include="Piece.h" />
-    <ClInclude Include="DynamicArray.h" />
-    <ClInclude Include="Queue.h" />
-    <ClInclude Include="Label.h" />
-    <ClInclude Include="ResolutionContext.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
