@@ -30,6 +30,7 @@
     <ClInclude Include="include\Label.h" />
     <ClInclude Include="include\LevelBar.h" />
     <ClInclude Include="include\Menu.h" />
+    <ClInclude Include="include\Paths.h" />
     <ClInclude Include="include\Piece.h" />
     <ClInclude Include="include\Queue.h" />
     <ClInclude Include="include\ResolutionContext.h" />

@@ -1,5 +1,6 @@
 #include "FontContext.h"
 #include "Constants.h"
+#include "Paths.h"
 #include "stdio.h"
 #include <SDL_ttf.h>
 #include <stdbool.h>
@@ -20,10 +21,10 @@ bool create_font_context() {
 		fprintf(stderr, "Error allocating memory for FontContext.\n");
 		return false;
 	}
-	font_context->button_font = TTF_OpenFont("AmericanCaptain-MdEY.otf", 72);
-	font_context->title_font = TTF_OpenFont("BubblePixel7-do9x.ttf", 128);
-	font_context->label_font = TTF_OpenFont("PoltBold-V5aZ.otf", LABEL_DEFAULT_FONT_SIZE);
-	font_context->label_font_small = TTF_OpenFont("Polt-AABM.otf", LABEL_DEFAULT_SMALL_FONT_SIZE);
+	font_context->button_font = TTF_OpenFont(BUTTON_FONT, 72);
+	font_context->title_font = TTF_OpenFont(TITLE_FONT, 128);
+	font_context->label_font = TTF_OpenFont(LABEL_FONT, LABEL_DEFAULT_FONT_SIZE);
+	font_context->label_font_small = TTF_OpenFont(LABEL_FONT_SMALL, LABEL_DEFAULT_SMALL_FONT_SIZE);
 	if (!font_context->button_font || !font_context->title_font || !font_context->label_font || !font_context->label_font_small) {
 		fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
 		destroy_font_context();
@@ -39,9 +40,9 @@ FontContext* get_font_context() {
 void adjust_label_font_size(float scale_factor) {
 	if (font_context) {
 		TTF_CloseFont(font_context->label_font);
-		font_context->label_font = TTF_OpenFont("PoltBold-V5aZ.otf", (int)(LABEL_DEFAULT_FONT_SIZE * scale_factor));
+		font_context->label_font = TTF_OpenFont(LABEL_FONT, (int)(LABEL_DEFAULT_FONT_SIZE * scale_factor));
 		TTF_CloseFont(font_context->label_font_small);
-		font_context->label_font_small = TTF_OpenFont("Polt-AABM.otf", (int)(LABEL_DEFAULT_SMALL_FONT_SIZE * scale_factor));
+		font_context->label_font_small = TTF_OpenFont(LABEL_FONT_SMALL, (int)(LABEL_DEFAULT_SMALL_FONT_SIZE * scale_factor));
 	}
 }
 

@@ -1,4 +1,5 @@
 #include "AudioContext.h"
+#include "Paths.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -29,15 +30,15 @@ bool create_audio_context() {
 		return false;
 	}
 
-	audio_context->music[0] = Mix_LoadMUS("assets/audio/music/1.mp3");
-	audio_context->music[1] = Mix_LoadMUS("assets/audio/music/2.mp3");
-	audio_context->music[2] = Mix_LoadMUS("assets/audio/music/3.mp3");
-	audio_context->music[3] = Mix_LoadMUS("assets/audio/music/4.mp3");
-	audio_context->music[4] = Mix_LoadMUS("assets/audio/music/5.mp3");
-	audio_context->move_sound = Mix_LoadWAV("assets/audio/sounds/click.wav");
-	audio_context->lock_sound = Mix_LoadWAV("assets/audio/sounds/lock.wav");
-	audio_context->clear_sound = Mix_LoadWAV("assets/audio/sounds/clear.wav");
-	audio_context->game_over = Mix_LoadWAV("assets/audio/sounds/game_over.wav");
+	audio_context->music[0] = Mix_LoadMUS(MUSIC_1);
+	audio_context->music[1] = Mix_LoadMUS(MUSIC_2);
+	audio_context->music[2] = Mix_LoadMUS(MUSIC_3);
+	audio_context->music[3] = Mix_LoadMUS(MUSIC_4);
+	audio_context->music[4] = Mix_LoadMUS(MUSIC_5);
+	audio_context->move_sound = Mix_LoadWAV(MOVE_SOUND);
+	audio_context->lock_sound = Mix_LoadWAV(LOCK_SOUND);
+	audio_context->clear_sound = Mix_LoadWAV(CLEAR_SOUND);
+	audio_context->game_over = Mix_LoadWAV(GAME_OVER_SOUND);
 	if (!audio_context->move_sound || !audio_context->lock_sound || !audio_context->clear_sound || !audio_context->game_over) {
 		fprintf(stderr, "Error loading sound file: %s\n", Mix_GetError());
 		destroy_audio_context();
