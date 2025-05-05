@@ -13,7 +13,7 @@
 - **Space** – Hard drop all the way down
 - **P** – Pause game
 - **M** – Toggle music
-- **S** – Toggle sound effects
+- **N** – Toggle sound effects
 - **Esc** – Quit
 
 ---
