@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "Constants.h"
+#include "Paths.h"
 #include "Game.h"
 
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
@@ -32,6 +33,19 @@ bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 		return false;
 	}
 	SDL_SetRenderDrawBlendMode(new_renderer, SDL_BLENDMODE_BLEND);
+
+	// Set window icon
+	SDL_Surface* icon_surface = SDL_LoadBMP(ICON_PATH);
+	if (icon_surface) {
+		Uint32 colorkey = SDL_MapRGB(icon_surface->format, 255, 255, 255);
+		SDL_SetColorKey(icon_surface, SDL_TRUE, colorkey);
+		SDL_SetWindowIcon(new_window, icon_surface);
+		SDL_FreeSurface(icon_surface);
+	}
+	else {
+		fprintf(stderr, "Error loading window icon: %s\n", SDL_GetError());
+	}
+
 	*window = new_window;
 	*renderer = new_renderer;
 	return true;
