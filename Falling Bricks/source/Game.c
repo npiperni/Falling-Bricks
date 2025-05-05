@@ -42,7 +42,8 @@ typedef enum {
 	GAME_STATE_MENU,
 	GAME_OVER_MENU,
 	GAME_STATE_PLAYING,
-	GAME_STATE_COUNTDOWN
+	GAME_STATE_COUNTDOWN,
+	GAME_STATE_PAUSED
 } GameState;
 
 typedef enum {
@@ -71,6 +72,8 @@ struct Game {
 	int countdown;
 	Uint32 drop_delay;
 	int required_lines_level_up;
+	Uint32 game_pause_start_time;
+	Uint32 total_pause_time;
 } game = { 0 };
 
 struct Flags {
@@ -80,7 +83,6 @@ struct Flags {
 	bool rotate_player;
 	bool clockwise_rotation;
 	bool drop_player;
-	bool pause;
 	bool check_full_rows;
 	bool dropping_pieces;
 	bool combo;
@@ -154,6 +156,7 @@ void prepare_game() {
 	game.elapsed_time = 0;
 	game.total_row_clear_time = 0;
 	game.countdown = 3;
+	game.total_pause_time = 0;
 	game.drop_delay = BASE_DROP_DELAY;
 	game.required_lines_level_up = BASE_LINES_PER_LEVEL;
 	game.level_up_label_display_start_time = SDL_GetTicks() - LEVEL_UP_LABEL_DISPLAY_DURATION; // Prevents showing the label at start of game
@@ -205,7 +208,7 @@ void send_quit() {
 }
 
 void play_next_music() {
-	if (game.current_state == GAME_STATE_PLAYING) {
+	if (game.current_state == GAME_STATE_PLAYING || game.current_state == GAME_STATE_PAUSED) {
 		play_random_music();
 	}
 }
@@ -363,11 +366,22 @@ void process_input(bool* running) {
 				enable_sound();
 			}
 		}
-		if (game.current_state == GAME_STATE_PLAYING) {
-			if (key == SDLK_p) {
-				flags.pause = !flags.pause;
+
+		if (key == SDLK_p) {
+			if (game.current_state == GAME_STATE_PLAYING) {
+				game.game_pause_start_time = SDL_GetTicks();
+				game.current_state = GAME_STATE_PAUSED;
 			}
-			else if (key == SDLK_UP || key == SDLK_x) {
+			else if (game.current_state == GAME_STATE_PAUSED) {
+				Uint32 pause_duration = SDL_GetTicks() - game.game_pause_start_time;
+				game.total_pause_time += pause_duration;
+				game.last_player_drop_time += pause_duration;
+				game.current_state = GAME_STATE_PLAYING;
+			}
+		}
+
+		if (game.current_state == GAME_STATE_PLAYING) {
+			if (key == SDLK_UP || key == SDLK_x) {
 				flags.rotate_player = true;
 				flags.clockwise_rotation = true;
 			}
@@ -409,6 +423,10 @@ void update() {
 		return;
 	}
 
+	if (game.current_state == GAME_STATE_PAUSED) {
+		return;
+	}
+
 	bool lock_piece = false;
 	bool drop_player = false;
 
@@ -428,6 +446,7 @@ void update() {
 	AudioContext* audio_context = get_audio_context();
 
 	if (game.current_state == GAME_STATE_PLAYING) {
+
 		update_level();
 		if (flags.check_full_rows) {
 			// Check for full rows
@@ -461,7 +480,7 @@ void update() {
 			}
 			return;
 		}
-		game.elapsed_time = time_now - game.start_time - game.total_row_clear_time;
+		game.elapsed_time = time_now - game.start_time - game.total_row_clear_time - game.total_pause_time;
 		bool time_up = game.current_mode == BLITZ && game.elapsed_time > BLITZ_TIME;
 		bool reached_line_limit = game.current_mode == FOURTY_LINES && game.total_lines_cleared >= 40;
 		if ( time_up || reached_line_limit) {
@@ -510,6 +529,7 @@ void update() {
 			drop_player = true;
 			lock_piece = true;
 			flags.drop_player = false;
+			game.last_player_drop_time = time_now;
 		}
 
 		clear_unlocked_cells(game_board);
@@ -546,11 +566,28 @@ void render(SDL_Renderer* renderer) {
 	// Draw icons
 	draw_toggle_icon(music_icon, renderer);
 	draw_toggle_icon(sound_icon, renderer);
-	
-	// Still want to show the game board at end of game
-	if (game.current_state != GAME_STATE_MENU) {
 
-		FontContext* font_context = get_font_context();
+	FontContext* font_context = get_font_context();
+
+	if (game.current_state == GAME_STATE_PAUSED) {
+		// draw pause text in middle of screen
+		LabelStyle label_style = default_label_style_no_font();
+		label_style.font = font_context->label_font;
+		label_style.align_right = false;
+		label_style.align_bottom = false;
+		int label_width, label_height;
+		TTF_SizeText(label_style.font, "GAME PAUSED", &label_width, &label_height);
+
+		// Align center
+		int x_pos = WINDOW_WIDTH / 2;
+		int y_pos = WINDOW_HEIGHT / 2;
+		x_pos = x_pos * resolution_context.scale_factor + resolution_context.x_offset - label_width / 2;
+		y_pos = y_pos * resolution_context.scale_factor + resolution_context.y_offset - label_height / 2;
+		draw_label(renderer, x_pos, y_pos, "GAME PAUSED", label_style);
+	}
+	
+	// Still want to show the game board at end of game and during countdown
+	if (game.current_state != GAME_STATE_MENU && game.current_state != GAME_STATE_PAUSED) {
 
 		float scale_factor = resolution_context.scale_factor;
 		int border_width = 4 * scale_factor;

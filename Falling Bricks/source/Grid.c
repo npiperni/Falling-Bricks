@@ -384,56 +384,56 @@ static void init_cells_in_row(Cell* cells, int width) {
 	}
 }
 
-static void test_print(Grid* grid) {
-	// Print the state of the board for debugging
-	for (int i = 0; i < grid->height; i++) {
-		for (int j = 0; j < grid->width; j++) {
-			if (grid->cells[i][j].piece && grid->cells[i][j].locked) {
-				printf("X");
-			}
-			else if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
-				printf("P");
-			}
-			else if (!grid->cells[i][j].piece && grid->cells[i][j].locked) {
-				printf("L");
-			}
-			else {
-				printf("0");
-			}
-		}
-		printf("\n");
-	}
-}
-
-static void test_print_file(Grid* grid, const char* label, int index) {
-	FILE* file = fopen("Debugging.txt", "a"); // Open in append mode to keep history
-	if (!file) {
-		fprintf(stderr, "Error: Failed to open file for writing\n");
-		return;
-	}
-
-	fprintf(file, "Grid State: %s at index %d\n", label, index);
-	for (int i = 0; i < grid->height; i++) {
-		for (int j = 0; j < grid->width; j++) {
-			if (grid->cells[i][j].piece && grid->cells[i][j].locked) {
-				fputc('X', file);
-			}
-			else if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
-				fputc('P', file);
-			}
-			else if (!grid->cells[i][j].piece && grid->cells[i][j].locked) {
-				fputc('L', file);
-			}
-			else {
-				fputc('0', file);
-			}
-		}
-		fputc('\n', file);
-	}
-	fprintf(file, "\n"); // Add a blank line for readability
-
-	fclose(file);
-}
+//static void test_print(Grid* grid) {
+//	// Print the state of the board for debugging
+//	for (int i = 0; i < grid->height; i++) {
+//		for (int j = 0; j < grid->width; j++) {
+//			if (grid->cells[i][j].piece && grid->cells[i][j].locked) {
+//				printf("X");
+//			}
+//			else if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
+//				printf("P");
+//			}
+//			else if (!grid->cells[i][j].piece && grid->cells[i][j].locked) {
+//				printf("L");
+//			}
+//			else {
+//				printf("0");
+//			}
+//		}
+//		printf("\n");
+//	}
+//}
+//
+//static void test_print_file(Grid* grid, const char* label, int index) {
+//	FILE* file = fopen("Debugging.txt", "a"); // Open in append mode to keep history
+//	if (!file) {
+//		fprintf(stderr, "Error: Failed to open file for writing\n");
+//		return;
+//	}
+//
+//	fprintf(file, "Grid State: %s at index %d\n", label, index);
+//	for (int i = 0; i < grid->height; i++) {
+//		for (int j = 0; j < grid->width; j++) {
+//			if (grid->cells[i][j].piece && grid->cells[i][j].locked) {
+//				fputc('X', file);
+//			}
+//			else if (grid->cells[i][j].piece && !grid->cells[i][j].locked) {
+//				fputc('P', file);
+//			}
+//			else if (!grid->cells[i][j].piece && grid->cells[i][j].locked) {
+//				fputc('L', file);
+//			}
+//			else {
+//				fputc('0', file);
+//			}
+//		}
+//		fputc('\n', file);
+//	}
+//	fprintf(file, "\n"); // Add a blank line for readability
+//
+//	fclose(file);
+//}
 
 int check_and_mark_full_rows(Grid* grid) {
 	int cleared_rows = 0;
