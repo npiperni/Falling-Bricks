@@ -19,8 +19,11 @@
 #define CLEAR_SOUND "assets/audio/sounds/clear.wav"
 #define GAME_OVER_SOUND "assets/audio/sounds/game_over.wav"
 
-// Icons
+// Audio Icons
 #define MUSIC_ICON_ON "assets/images/music_on.bmp"
 #define MUSIC_ICON_OFF "assets/images/music_off.bmp"
 #define SOUND_ICON_ON "assets/images/sound_on.bmp"
 #define SOUND_ICON_OFF "assets/images/sound_off.bmp"
+
+// Window Icon
+#define ICON_PATH "assets/icon/icon.bmp"
