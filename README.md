@@ -32,7 +32,7 @@
 -  The points awarded during line clears is calculated using the formula:  10 * (lines_cleared ^ 2) * level * gravity_combo
 -  lines_cleared is the number of lines cleared at once (since this is multiplied by 10 it effectively means 10 points for a single, 40 points for a double, 90 points for a triple, and 160 points for a quadruple)
 -  level is your current level
--  gravity_combo equals 2 if the line or lines were cleared due to a falling brick caused by the last line clear (double points bonus). Otherwise it equals 1 and has no effect.
+-  gravity_combo equals 3 if the line or lines were cleared due to a falling brick caused by the last line clear (triple points bonus). Otherwise it equals 1 and has no effect.
 
 ---
 
