@@ -8,8 +8,8 @@
 - **Left Arrow** – Move piece left
 - **Right Arrow** – Move piece right
 - **Down Arrow** – Move piece down
-- **Up Arrow or Z** – Rotate piece clockwise
-- **X** - Rotate piece counterclockwise
+- **Up Arrow or X** – Rotate piece clockwise
+- **Z** - Rotate piece counterclockwise
 - **Space** – Hard drop all the way down
 - **P** – Pause game
 - **M** – Toggle music
