@@ -53,6 +53,9 @@ bool create_audio_context() {
 		}
 	}
 
+	audio_context->music_paused = false;
+	audio_context->sound_enabled = true;
+
 	return true;
 }
 
@@ -65,6 +68,58 @@ void play_random_music() {
 		int random_index = rand() % NUM_SONGS;
 		if (Mix_PlayMusic(audio_context->music[random_index], 0) == -1) {
 			fprintf(stderr, "Error playing music: %s\n", Mix_GetError());
+		}
+		if (audio_context->music_paused) {
+			Mix_PauseMusic();
+		}
+	}
+}
+
+void pause_music() {
+	if (audio_context) {
+		audio_context->music_paused = true;
+		Mix_PauseMusic();
+	}
+}
+
+void unpause_music() {
+	if (audio_context) {
+		audio_context->music_paused = false;
+		Mix_ResumeMusic();
+	}
+}
+
+void enable_sound() {
+	if (audio_context) {
+		audio_context->sound_enabled = true;
+	}
+}
+
+void disable_sound() {
+	if (audio_context) {
+		audio_context->sound_enabled = false;
+		Mix_HaltChannel(-1);
+	}
+}
+
+void play_sound(Sound sound) {
+	if (audio_context && audio_context->sound_enabled) {
+		switch (sound) {
+		case MOVE_SFX:
+			Mix_PlayChannel(-1, audio_context->move_sound, 0);
+			break;
+		case LOCK_SFX:
+			Mix_PlayChannel(-1, audio_context->lock_sound, 0);
+			break;
+		case CLEAR_SFX:
+			Mix_PlayChannel(-1, audio_context->clear_sound, 0);
+			break;
+		case GAME_OVER_SFX:
+			Mix_PlayChannel(-1, audio_context->game_over, 0);
+			break;
+		default:
+			fprintf(stderr, "Invalid sound type\n");
+			break;
 		}
 	}
 }

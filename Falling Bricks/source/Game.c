@@ -6,6 +6,8 @@
 #include <stdlib.h>
 
 #include "Constants.h"
+#include "Paths.h"
+#include "ToggleIcon.h"
 #include "Grid.h"
 #include "Piece.h"
 #include "Queue.h"
@@ -29,10 +31,12 @@ Grid* game_board = NULL;
 Grid* queue_grid = NULL;
 Queue* next_pieces = NULL;
 
-SDL_Renderer* debug_renderer = NULL;
+//SDL_Renderer* debug_renderer = NULL;
 
 struct TitleMenu* title_menu = NULL;
 struct GameOverMenu* game_over_menu = NULL;
+ToggleIcon* music_icon = NULL;
+ToggleIcon* sound_icon = NULL;
 
 typedef enum {
 	GAME_STATE_MENU,
@@ -118,14 +122,14 @@ static void calculate_score() {
 	game.score += game.current_lines_cleared * BASE_LINE_SCORE * game.current_lines_cleared * game.level * (flags.combo ? COMBO_MULTIPLIER : 1);
 }
 
-static void screenshot_debug() {
-	char buffer[100];
-	sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
-	SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-	SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
-	SDL_SaveBMP(sshot, buffer);
-	SDL_FreeSurface(sshot);
-}
+//static void screenshot_debug() {
+//	char buffer[100];
+//	sprintf_s(buffer, sizeof(buffer), "%d.bmp", (int)SDL_GetTicks());
+//	SDL_Surface* sshot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+//	SDL_RenderReadPixels(debug_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+//	SDL_SaveBMP(sshot, buffer);
+//	SDL_FreeSurface(sshot);
+//}
 
 void start_game() {
 	game.last_player_drop_time = game.start_time = SDL_GetTicks();
@@ -193,7 +197,7 @@ void game_over() {
 	snprintf(game.main_label, sizeof(game.main_label), "GAME OVER!");
 	Mix_HaltMusic();
 	Mix_HaltChannel(-1); // Stop all channels so we can play the game over sound if anything else is playing
-	Mix_PlayChannel(-1, get_audio_context()->game_over, 0);
+	play_sound(GAME_OVER_SFX);
 }
 
 void send_quit() {
@@ -231,6 +235,14 @@ static bool move_player_down() {
 }
 
 bool setup() {
+	music_icon = create_toggle_icon((SDL_Rect) { WINDOW_WIDTH - 35, 5, 30, 30 }, MUSIC_ICON_ON, MUSIC_ICON_OFF);
+	sound_icon = create_toggle_icon((SDL_Rect) { WINDOW_WIDTH - 70, 5, 30, 30 },SOUND_ICON_ON, SOUND_ICON_OFF);
+	if (!music_icon || !sound_icon) {
+		fprintf(stderr, "Error: Failed to load icons\n");
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MISSING ICONS", "Failed to load required icons.", 0);
+		return false;
+	}
+
 	if (!create_font_context()) {
 		fprintf(stderr, "Error: Failed to create font context\n");
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MISSING FONTS", "Failed to load required fonts.", 0);
@@ -283,12 +295,16 @@ void cleanup() {
 	destroy_game_over_menu(game_over_menu);
 	destroy_audio_context();
 	destroy_font_context();
+	destroy_toggle_icon(music_icon);
+	destroy_toggle_icon(sound_icon);
 	player_piece = NULL;
 	game_board = NULL;
 	queue_grid = NULL;
 	next_pieces = NULL;
 	title_menu = NULL;
 	game_over_menu = NULL;
+	music_icon = NULL;
+	sound_icon = NULL;
 }
 
 void process_input(bool* running) {
@@ -302,6 +318,8 @@ void process_input(bool* running) {
 			resolution_context = get_resolution_context(window_width, window_height);
 			title_menu->res_context = resolution_context;
 			game_over_menu->res_context = resolution_context;
+			music_icon->res_context = resolution_context;
+			sound_icon->res_context = resolution_context;
 			adjust_label_font_size(resolution_context.scale_factor);
 		}	
 	}
@@ -313,40 +331,62 @@ void process_input(bool* running) {
 
 	if (game.current_state == GAME_STATE_MENU) {
 		handle_title_menu_events(title_menu, event);
-		return;
 	}
 	if (game.current_state == GAME_OVER_MENU) {
 		handle_game_over_menu_events(game_over_menu, event);
-		return;
 	}
+
+	AudioContext* audio_context = get_audio_context();
 
 	if (event.type == SDL_KEYDOWN) {
 		int key = event.key.keysym.sym;
 		if (key == SDLK_ESCAPE) {
 			*running = false;
 		}
-		else if (key == SDLK_p) {
-			flags.pause = !flags.pause;
+		else if (key == SDLK_m) {
+			if (audio_context->music_paused) {
+				music_icon->is_toggled = true;
+				unpause_music();
+			}
+			else {
+				music_icon->is_toggled = false;
+				pause_music();
+			}
 		}
-		else if (key == SDLK_UP || key == SDLK_x) {
-			flags.rotate_player = true;
-			flags.clockwise_rotation = true;
+		else if (key == SDLK_n) {
+			if (audio_context->sound_enabled) {
+				sound_icon->is_toggled = false;
+				disable_sound();
+			}
+			else {
+				sound_icon->is_toggled = true;
+				enable_sound();
+			}
 		}
-		else if (key == SDLK_z) {
-			flags.rotate_player = true;
-			flags.clockwise_rotation = false;
-		}
-		else if (key == SDLK_DOWN) {
-			flags.move_player_down = true;
-		}
-		else if (key == SDLK_LEFT) {
-			flags.move_player_left = true;
-		}
-		else if (key == SDLK_RIGHT) {
-			flags.move_player_right = true;
-		}
-		else if (key == SDLK_SPACE) {
-			flags.drop_player = true;
+		if (game.current_state == GAME_STATE_PLAYING) {
+			if (key == SDLK_p) {
+				flags.pause = !flags.pause;
+			}
+			else if (key == SDLK_UP || key == SDLK_x) {
+				flags.rotate_player = true;
+				flags.clockwise_rotation = true;
+			}
+			else if (key == SDLK_z) {
+				flags.rotate_player = true;
+				flags.clockwise_rotation = false;
+			}
+			else if (key == SDLK_DOWN) {
+				flags.move_player_down = true;
+			}
+			else if (key == SDLK_LEFT) {
+				flags.move_player_left = true;
+			}
+			else if (key == SDLK_RIGHT) {
+				flags.move_player_right = true;
+			}
+			else if (key == SDLK_SPACE) {
+				flags.drop_player = true;
+			}
 		}
 	}
 	
@@ -402,7 +442,7 @@ void update() {
 				snprintf(game.main_label, sizeof(game.main_label), "%s", label);
 				game.label_display_start_time = time_now;
 				game.combo_label_display_start_time = flags.combo ? time_now : 0;
-				Mix_PlayChannel(-1, audio_context->clear_sound, 0);
+				play_sound(CLEAR_SFX);
 			}
 			flags.combo = false;
 			flags.check_full_rows = false;
@@ -442,13 +482,13 @@ void update() {
 
 		if (flags.move_player_left) {
 			if (move_player_left()) {
-				Mix_PlayChannel(-1, audio_context->move_sound, 0);
+				play_sound(MOVE_SFX);
 			}
 			flags.move_player_left = false;
 		}
 		if (flags.move_player_right) {
 			if (move_player_right()) {
-				Mix_PlayChannel(-1, audio_context->move_sound, 0);
+				play_sound(MOVE_SFX);
 			}
 			flags.move_player_right = false;
 		}
@@ -458,7 +498,7 @@ void update() {
 				destroy_piece(player_piece);
 				// Update to rotated piece and new position after rotation
 				player_piece = rotated_piece;
-				Mix_PlayChannel(-1, audio_context->move_sound, 0);
+				play_sound(MOVE_SFX);
 			}
 			flags.rotate_player = false;
 		}
@@ -486,13 +526,13 @@ void update() {
 			player_piece = NULL;
 			// Check for full rows on next iteration
 			flags.check_full_rows = true;
-			Mix_PlayChannel(-1, audio_context->lock_sound, 0);
+			play_sound(LOCK_SFX);
 		}
 	}
 }
 
 void render(SDL_Renderer* renderer) {
-	debug_renderer = renderer;
+	//debug_renderer = renderer;
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
@@ -502,6 +542,10 @@ void render(SDL_Renderer* renderer) {
 	else if (game.current_state == GAME_OVER_MENU) {
 		draw_game_over_menu(game_over_menu, renderer);
 	}
+
+	// Draw icons
+	draw_toggle_icon(music_icon, renderer);
+	draw_toggle_icon(sound_icon, renderer);
 	
 	// Still want to show the game board at end of game
 	if (game.current_state != GAME_STATE_MENU) {
