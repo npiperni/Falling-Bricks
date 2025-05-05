@@ -34,6 +34,7 @@
     <ClInclude Include="include\Piece.h" />
     <ClInclude Include="include\Queue.h" />
     <ClInclude Include="include\ResolutionContext.h" />
+    <ClInclude Include="include\ToggleIcon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\AlphaFade.c" />
@@ -50,6 +51,7 @@
     <ClCompile Include="source\Piece.c" />
     <ClCompile Include="source\Queue.c" />
     <ClCompile Include="source\ResolutionContext.c" />
+    <ClCompile Include="source\ToggleIcon.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
