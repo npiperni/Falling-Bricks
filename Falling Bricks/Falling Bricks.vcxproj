@@ -35,6 +35,7 @@
     <ClInclude Include="include\Queue.h" />
     <ClInclude Include="include\ResolutionContext.h" />
     <ClInclude Include="include\ToggleIcon.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\AlphaFade.c" />
@@ -52,6 +53,12 @@
     <ClCompile Include="source\Queue.c" />
     <ClCompile Include="source\ResolutionContext.c" />
     <ClCompile Include="source\ToggleIcon.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\icon\icon.ico" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

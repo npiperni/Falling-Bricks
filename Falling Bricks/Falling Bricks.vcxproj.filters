@@ -15,79 +15,113 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.c">
+    <ClCompile Include="source\AlphaFade.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Grid.c">
+    <ClCompile Include="source\AudioContext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Piece.c">
+    <ClCompile Include="source\Button.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Game.c">
+    <ClCompile Include="source\DynamicArray.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Queue.c">
+    <ClCompile Include="source\FontContext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DynamicArray.c">
+    <ClCompile Include="source\Game.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Button.c">
+    <ClCompile Include="source\Grid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Menu.c">
+    <ClCompile Include="source\Label.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LevelBar.c">
+    <ClCompile Include="source\LevelBar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Label.c">
+    <ClCompile Include="source\Main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ResolutionContext.c">
+    <ClCompile Include="source\Menu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AlphaFade.c">
+    <ClCompile Include="source\Piece.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Queue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\ResolutionContext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="source\ToggleIcon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Constants.h">
+    <ClInclude Include="include\AlphaFade.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Grid.h">
+    <ClInclude Include="include\AudioContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Piece.h">
+    <ClInclude Include="include\Button.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="include\Constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Queue.h">
+    <ClInclude Include="include\DynamicArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DynamicArray.h">
+    <ClInclude Include="include\FontContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Button.h">
+    <ClInclude Include="include\Game.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Menu.h">
+    <ClInclude Include="include\Grid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LevelBar.h">
+    <ClInclude Include="include\Label.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Label.h">
+    <ClInclude Include="include\LevelBar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ResolutionContext.h">
+    <ClInclude Include="include\Menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AlphaFade.h">
+    <ClInclude Include="include\Paths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Piece.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ResolutionContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ToggleIcon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\icon\icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
