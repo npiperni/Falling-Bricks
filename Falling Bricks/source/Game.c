@@ -367,18 +367,16 @@ void process_input(bool* running) {
 			}
 		}
 
-		if (game.current_state == GAME_STATE_PLAYING || game.current_state == GAME_STATE_PAUSED) {
-			if (key == SDLK_p) {
-				if (game.current_state == GAME_STATE_PLAYING) {
-					game.game_pause_start_time = SDL_GetTicks();
-					game.current_state = GAME_STATE_PAUSED;
-				}
-				else {
-					Uint32 pause_duration = SDL_GetTicks() - game.game_pause_start_time;
-					game.total_pause_time += pause_duration;
-					game.last_player_drop_time += pause_duration;
-					game.current_state = GAME_STATE_PLAYING;
-				}
+		if (key == SDLK_p) {
+			if (game.current_state == GAME_STATE_PLAYING) {
+				game.game_pause_start_time = SDL_GetTicks();
+				game.current_state = GAME_STATE_PAUSED;
+			}
+			else if (game.current_state == GAME_STATE_PAUSED) {
+				Uint32 pause_duration = SDL_GetTicks() - game.game_pause_start_time;
+				game.total_pause_time += pause_duration;
+				game.last_player_drop_time += pause_duration;
+				game.current_state = GAME_STATE_PLAYING;
 			}
 		}
 
