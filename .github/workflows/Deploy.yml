@@ -41,7 +41,7 @@ jobs:
 
       - name: Run build script
         shell: pwsh
-        run: ./build.ps1 -Deploy
+        run: ./emcc_build.ps1
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
