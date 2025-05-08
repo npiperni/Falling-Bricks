@@ -19,7 +19,7 @@ bool game_is_running = false;
 
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
-		fprintf(stderr, "Error intitializing SDL.\n");
+		fprintf(stderr, "Error initializing SDL.\n");
 		return false;
 	}
 	SDL_Window* new_window = SDL_CreateWindow(
