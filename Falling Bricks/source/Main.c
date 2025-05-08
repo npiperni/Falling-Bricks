@@ -8,8 +8,17 @@
 #include "Paths.h"
 #include "Game.h"
 
+// For browser support
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
+SDL_Window* window = NULL;
+SDL_Renderer* renderer = NULL;
+bool game_is_running = false;
+
 bool init_window(SDL_Window** window, SDL_Renderer** renderer) {
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
 		fprintf(stderr, "Error intitializing SDL.\n");
 		return false;
 	}
@@ -57,19 +66,35 @@ void destroy_window(SDL_Window* window, SDL_Renderer* renderer) {
 	SDL_Quit();
 }
 
+// Main game loop function for WebAssembly
+#ifdef __EMSCRIPTEN__
+void main_loop() {
+	if (!game_is_running) {
+		emscripten_cancel_main_loop();
+	}
+
+	process_input(&game_is_running);
+	update();
+	render(renderer);
+}
+#endif
+
 int main(int argc, char* args[]) {
 	srand(time(NULL));
 
-	SDL_Window* window = NULL;
-	SDL_Renderer* renderer = NULL;
+	game_is_running = init_window(&window, &renderer) && setup();
 
-	bool game_is_running = init_window(&window, &renderer) && setup();
-
+#ifdef __EMSCRIPTEN__
+	// If running in a browser, use emscripten's game loop
+	emscripten_set_main_loop(main_loop, 0, 1);
+#else
+	// If running natively, use the traditional game loop
 	while (game_is_running) {
 		process_input(&game_is_running);
 		update();
 		render(renderer);
 	}
+#endif
 
 	cleanup();
 
