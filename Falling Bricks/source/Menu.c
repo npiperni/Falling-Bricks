@@ -83,7 +83,7 @@ struct TitleMenu* create_title_menu(ButtonCallback on_click[4]) {
 		free(menu);
 		return NULL;
 	}
-	create_grid_piece(menu);
+	//create_grid_piece(menu);
 
 	FontContext* font_context = get_font_context();
 	TTF_Font* title_font = font_context->title_font;

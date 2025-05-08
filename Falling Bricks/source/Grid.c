@@ -366,6 +366,7 @@ static bool allocate_cells(Grid* grid) {
 		}
 		init_cells_in_row(grid->cells[i], grid->width);
 	}
+	return true;
 }
 
 static void deallocate_cells(Cell** cells, int height) {
