@@ -42,6 +42,7 @@ jobs:
       - name: Run build script
         shell: pwsh
         run: |
+          . .\emsdk\emsdk_env.ps1
           cd "Falling Bricks"
           .\emcc_build.ps1
 
