@@ -32,16 +32,16 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Set up Emscripten
         run: |
-        git clone https://github.com/emscripten-core/emsdk.git
-        cd emsdk
-        .\emsdk install latest
-        .\emsdk activate latest
-        . .\emsdk_env.ps1
-      shell: pwsh
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          .\emsdk install latest
+          .\emsdk activate latest
+          . .\emsdk_env.ps1
+        shell: pwsh
 
       - name: Run build script
-          shell: pwsh
-          run: ./build.ps1 -Deploy
+        shell: pwsh
+        run: ./build.ps1 -Deploy
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
