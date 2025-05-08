@@ -1,12 +1,28 @@
-$emsdkPath = "D:\emscripten\emsdk" 
-. "$emsdkPath\emsdk_env.ps1"
+# Check if running in GitHub Actions
+$inCI = $env:GITHUB_ACTIONS -eq "true"
 
-# Set the source directory and output directory
+if ($inCI) {
+    Write-Host "Running in GitHub Actions environment..."
+} else {
+    Write-Host "Running locally..."
+
+    # Set the local path for emsdk
+    $emsdkPath = "D:\emscripten\emsdk" 
+    . "$emsdkPath\emsdk_env.ps1"
+}
+
+# Define directories
 $sourceFiles = Get-ChildItem -Path "source" -Filter "*.c" | ForEach-Object { $_.FullName }
-$outputDir = "build\index.html"
+$outputDir = "emcc_build"
+$outputFile = "$outputDir\index.html"
+
+# Create the output directory if it doesn't exist
+if (!(Test-Path $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir
+}
 
 # Run the emcc command to compile to WebAssembly
-emcc $sourceFiles -o $outputDir `
+emcc $sourceFiles -o $outputFile `
     -s USE_SDL=2 `
     -s USE_SDL_TTF=2 `
     -s USE_SDL_MIXER=2 `
