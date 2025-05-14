@@ -8,6 +8,11 @@
 #include "Paths.h"
 #include "Game.h"
 
+#ifdef _DEBUG
+	#define _CRTDBG_MAP_ALLOC
+	#include <crtdbg.h>
+#endif
+
 // For browser support
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -81,6 +86,10 @@ void main_loop() {
 
 int main(int argc, char* args[]) {
 	srand(time(NULL));
+#ifdef _DEBUG
+	// Enable memory leak checks only in debug builds
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 
 	game_is_running = init_window(&window, &renderer) && setup();
 
