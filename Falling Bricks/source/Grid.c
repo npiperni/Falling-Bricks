@@ -623,19 +623,37 @@ void drop_all_pieces(Grid* grid) {
 	destroy_dynamic_array(pieces_to_drop);
 
 
-	// Now go over each piece and see if it can drop further
-	for (int i = 0; i < grid->locked_pieces->size; i++) {
-		Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
-		set_lock(piece, grid, false);
-		clear_piece_pointers(grid, piece);
-		drop_piece_on_grid(grid, piece, true);
+	// Now go over each piece and see if it can drop further. While loop is for very rare cases where a piece can drop further after another piece has dropped.
+	bool can_drop_further = true;
+	while (can_drop_further) {
+		can_drop_further = false;
+		for (int i = 0; i < grid->locked_pieces->size; i++) {
+			Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
+			set_lock(piece, grid, false);
+			clear_piece_pointers(grid, piece);
+			drop_piece_on_grid(grid, piece, true);
+		}
+		// Check if any piece can drop further
+		for (int i = 0; i < grid->locked_pieces->size; i++) {
+			Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
+			set_lock(piece, grid, false);
+			if (validate_piece_at_position(grid, piece, piece->row_pos + 1, piece->col_pos)) {
+				set_lock(piece, grid, true);
+				can_drop_further = true;
+				break;
+			}
+			set_lock(piece, grid, true);
+		}
 	}
 
+	/// Debug check
 	// For each piece assert that it can't drop further
-	for (int i = 0; i < grid->locked_pieces->size; i++) {
-		Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
-		SDL_assert(!validate_piece_at_position(grid, piece, piece->row_pos + 1, piece->col_pos));
-	}
+	//for (int i = 0; i < grid->locked_pieces->size; i++) {
+	//	Piece* piece = get_from_dynamic_array(grid->locked_pieces, i);
+	//	set_lock(piece, grid, false);
+	//	SDL_assert(!validate_piece_at_position(grid, piece, piece->row_pos + 1, piece->col_pos));
+	//	set_lock(piece, grid, true);
+	//}
 
 }
 
