@@ -608,8 +608,6 @@ void drop_all_pieces(Grid* grid) {
 				set_lock(piece, grid, false);
 				clear_piece_pointers(grid, piece);
 				piece->row_pos += num_empty_rows;
-				remove_from_dynamic_array(grid->locked_pieces, piece);
-
 			}
 			num_empty_rows++;
 			index = pieces_to_drop->size;
