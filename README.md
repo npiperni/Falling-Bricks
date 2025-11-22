@@ -42,6 +42,19 @@
 - Blitz: Clear as much as you can in 2 minutes.
 - Endless: Play for as long as you can to achieve your best score possible.
 
+## Install
+
+- Windows: you can download the zip containing the exe from the latest [release](https://github.com/npiperni/Falling-Bricks/releases)
+- Linux: Run this command to compile, you will need the SDL dependencies installed
+```
+gcc -O2 source/*.c -Iinclude -Wno-incompatible-pointer-types -o Falling_Bricks $(pkg-config --cflags --libs sdl2 SDL2_mixer SDL2_ttf) -lm
+```
+Then run with
+```
+./Falling_Bricks
+```
+- Web Browser: You can play in the browser by visiting https://npiperni.github.io/Falling-Bricks/ (Full screen is not supported)
+
 ##  Credits
 
 ### Fonts

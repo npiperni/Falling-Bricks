@@ -312,94 +312,95 @@ void cleanup() {
 
 void process_input(bool* running) {
 	SDL_Event event;
-	SDL_PollEvent(&event);
+	while(SDL_PollEvent(&event)) {
 
-	if (event.type == SDL_WINDOWEVENT) {
-		if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-			int window_width = event.window.data1; 
-			int window_height = event.window.data2;
-			resolution_context = get_resolution_context(window_width, window_height);
-			title_menu->res_context = resolution_context;
-			game_over_menu->res_context = resolution_context;
-			music_icon->res_context = resolution_context;
-			sound_icon->res_context = resolution_context;
-			adjust_label_font_size(resolution_context.scale_factor);
-		}	
-	}
+		if (event.type == SDL_WINDOWEVENT) {
+			if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+				int window_width = event.window.data1; 
+				int window_height = event.window.data2;
+				resolution_context = get_resolution_context(window_width, window_height);
+				title_menu->res_context = resolution_context;
+				game_over_menu->res_context = resolution_context;
+				music_icon->res_context = resolution_context;
+				sound_icon->res_context = resolution_context;
+				adjust_label_font_size(resolution_context.scale_factor);
+			}	
+		}
 
-	if (event.type == SDL_QUIT) {
-		*running = false;
-		return;
-	}
-
-	if (game.current_state == GAME_STATE_MENU) {
-		handle_title_menu_events(title_menu, event);
-	}
-	if (game.current_state == GAME_OVER_MENU) {
-		handle_game_over_menu_events(game_over_menu, event);
-	}
-
-	AudioContext* audio_context = get_audio_context();
-
-	if (event.type == SDL_KEYDOWN) {
-		int key = event.key.keysym.sym;
-		if (key == SDLK_ESCAPE) {
+		if (event.type == SDL_QUIT) {
 			*running = false;
-		}
-		else if (key == SDLK_m) {
-			if (audio_context->music_paused) {
-				music_icon->is_toggled = true;
-				unpause_music();
-			}
-			else {
-				music_icon->is_toggled = false;
-				pause_music();
-			}
-		}
-		else if (key == SDLK_n) {
-			if (audio_context->sound_enabled) {
-				sound_icon->is_toggled = false;
-				disable_sound();
-			}
-			else {
-				sound_icon->is_toggled = true;
-				enable_sound();
-			}
+			return;
 		}
 
-		if (key == SDLK_p) {
+		if (game.current_state == GAME_STATE_MENU) {
+			handle_title_menu_events(title_menu, event);
+		}
+		if (game.current_state == GAME_OVER_MENU) {
+			handle_game_over_menu_events(game_over_menu, event);
+		}
+
+		AudioContext* audio_context = get_audio_context();
+
+		if (event.type == SDL_KEYDOWN) {
+			int key = event.key.keysym.sym;
+			if (key == SDLK_ESCAPE) {
+				*running = false;
+			}
+			else if (key == SDLK_m) {
+				if (audio_context->music_paused) {
+					music_icon->is_toggled = true;
+					unpause_music();
+				}
+				else {
+					music_icon->is_toggled = false;
+					pause_music();
+				}
+			}
+			else if (key == SDLK_n) {
+				if (audio_context->sound_enabled) {
+					sound_icon->is_toggled = false;
+					disable_sound();
+				}
+				else {
+					sound_icon->is_toggled = true;
+					enable_sound();
+				}
+			}
+
+			if (key == SDLK_p) {
+				if (game.current_state == GAME_STATE_PLAYING) {
+					game.game_pause_start_time = SDL_GetTicks();
+					game.current_state = GAME_STATE_PAUSED;
+				}
+				else if (game.current_state == GAME_STATE_PAUSED) {
+					Uint32 pause_duration = SDL_GetTicks() - game.game_pause_start_time;
+					game.total_pause_time += pause_duration;
+					game.last_player_drop_time += pause_duration;
+					game.current_state = GAME_STATE_PLAYING;
+				}
+			}
+
 			if (game.current_state == GAME_STATE_PLAYING) {
-				game.game_pause_start_time = SDL_GetTicks();
-				game.current_state = GAME_STATE_PAUSED;
-			}
-			else if (game.current_state == GAME_STATE_PAUSED) {
-				Uint32 pause_duration = SDL_GetTicks() - game.game_pause_start_time;
-				game.total_pause_time += pause_duration;
-				game.last_player_drop_time += pause_duration;
-				game.current_state = GAME_STATE_PLAYING;
-			}
-		}
-
-		if (game.current_state == GAME_STATE_PLAYING) {
-			if (key == SDLK_UP || key == SDLK_x) {
-				flags.rotate_player = true;
-				flags.clockwise_rotation = true;
-			}
-			else if (key == SDLK_z) {
-				flags.rotate_player = true;
-				flags.clockwise_rotation = false;
-			}
-			else if (key == SDLK_DOWN) {
-				flags.move_player_down = true;
-			}
-			else if (key == SDLK_LEFT) {
-				flags.move_player_left = true;
-			}
-			else if (key == SDLK_RIGHT) {
-				flags.move_player_right = true;
-			}
-			else if (key == SDLK_SPACE) {
-				flags.drop_player = true;
+				if (key == SDLK_UP || key == SDLK_x) {
+					flags.rotate_player = true;
+					flags.clockwise_rotation = true;
+				}
+				else if (key == SDLK_z) {
+					flags.rotate_player = true;
+					flags.clockwise_rotation = false;
+				}
+				else if (key == SDLK_DOWN) {
+					flags.move_player_down = true;
+				}
+				else if (key == SDLK_LEFT) {
+					flags.move_player_left = true;
+				}
+				else if (key == SDLK_RIGHT) {
+					flags.move_player_right = true;
+				}
+				else if (key == SDLK_SPACE) {
+					flags.drop_player = true;
+				}
 			}
 		}
 	}
