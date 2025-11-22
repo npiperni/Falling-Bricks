@@ -98,6 +98,7 @@ struct TitleMenu* create_title_menu(ButtonCallback on_click[4]) {
 	menu->buttons[2] = create_button(button_x, button_y + 300, button_width, button_height, button_color, on_click[2], "Endless", button_font);
 	menu->buttons[3] = create_button(button_x, button_y + 400, button_width, button_height, button_color, on_click[3], "Quit", button_font);
 	menu->res_context = get_resolution_context(WINDOW_WIDTH, WINDOW_HEIGHT);
+	menu->floating_grid_creation_time = SDL_GetTicks();
 
 	SDL_Surface* title_surface = TTF_RenderText_Solid(title_font, "Falling Bricks", (SDL_Color) { 200, 175, 0, SDL_ALPHA_OPAQUE });
 	menu->title_texture = SDL_CreateTextureFromSurface(SDL_GetRenderer(SDL_GetWindowFromID(1)), title_surface);
